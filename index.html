@@ -3140,7 +3140,7 @@ function addCoach() {
   var suc   = document.getElementById('ac-suc');
   if (!first||!last||!email||!team){ err.textContent='All fields required.'; err.style.display='block'; return; }
   err.style.display = 'none';
-  supa('coaches', 'POST', {full_name:first+' '+last, email:email, team_id:team, status:'active'})
+  supa('coaches', 'POST', {full_name:first+' '+last, email:email, team_id:team})
     .then(function(data) {
       if (!data || data.code || data.error) {
         err.textContent = (data && (data.message||data.error)) || 'Failed to create coach login.';
@@ -3160,13 +3160,7 @@ function addCoach() {
 }
 
 function resetCoachPass(id) {
-  if (confirm('Reset password for this coach? They will need a new temporary password.')) {
-    var newPass = prompt('Enter new temporary password:');
-    if (!newPass) return;
-    supa('coaches?id=eq.' + id, 'PATCH', {password: newPass})
-      .then(function(){ showToast('Password updated successfully.'); })
-      .catch(function(){ showToast('Failed to update password.'); });
-  }
+  showToast('Password reset not supported — coaches log in by email only.');
 }
 
 // ── Reset actions ──────────────────────────────────────────
@@ -3805,7 +3799,7 @@ function addCoach() {
   var suc   = document.getElementById('ac-suc');
   if (!first||!last||!email||!team){ err.textContent='All fields required.'; err.style.display='block'; return; }
   err.style.display = 'none';
-  supa('coaches', 'POST', {full_name:first+' '+last, email:email, team_id:team, status:'active'})
+  supa('coaches', 'POST', {full_name:first+' '+last, email:email, team_id:team})
     .then(function(data) {
       if (!data || data.code || data.error) { err.textContent=(data&&(data.message||data.error))||'Failed to create coach.'; err.style.display='block'; return; }
       var created = Array.isArray(data) ? data[0] : data;
