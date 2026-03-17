@@ -1089,6 +1089,7 @@ function proceedFromConsent() {
   if (!cb.checked) { showErr('consent-err', 'Please check the box above to confirm your consent before continuing.'); return; }
   showErr('consent-err', '');
   buildRosters();
+  window.addEventListener('beforeunload', warnBeforeLeave);
   show('s-intake');
 }
 
@@ -1177,6 +1178,12 @@ function getRosterSelected(rid) {
   return { n1: sel[0] ? sel[0].textContent.trim() : '', n2: sel[1] ? sel[1].textContent.trim() : '' };
 }
 
+// ── Guard against accidental tab close during assessment ───
+function warnBeforeLeave(e) {
+  e.preventDefault();
+  e.returnValue = '';
+}
+
 // ── Submit full assessment to Supabase ─────────────────────
 function submitIntake() {
   setLoading('btn-submit', true, 'Submit Assessment ✓');
@@ -1235,6 +1242,7 @@ function submitIntake() {
     })
     .then(function() {
       // Show confirmation with personalized summary
+      window.removeEventListener('beforeunload', warnBeforeLeave);
       populateConfirmation(pc);
       setLoading('btn-submit', false, 'Submit Assessment ✓');
       show('s-confirm');
@@ -1894,6 +1902,13 @@ function drawNetworkChart(players, posData, negData, rolesMap, teamName) {
 
   var roleColor = {inf:C.green, rej:'#C0392B', iso:'#6070C8', pol:C.purple, non:C.mid};
 
+  // Deterministic hash so chart looks the same every time for the same data
+  function strHash(s) {
+    var h = 0;
+    for (var i=0; i<s.length; i++) { h = ((h*31)+s.charCodeAt(i))>>>0; }
+    return h;
+  }
+
   // Position nodes in a circular layout, grouped loosely by role
   var cx = W/2, cy = H/2 + 10, R = 260;
   var nodes = {};
@@ -1903,7 +1918,7 @@ function drawNetworkChart(players, posData, negData, rolesMap, teamName) {
   });
   sorted.forEach(function(name, i) {
     var angle = (i / players.length) * Math.PI * 2 - Math.PI/2;
-    var r = R + (Math.random()-0.5)*30;
+    var r = R + ((strHash(name) % 30) - 15);
     nodes[name] = { x: cx + Math.cos(angle)*r, y: cy + Math.sin(angle)*r };
   });
 
@@ -1917,8 +1932,9 @@ function drawNetworkChart(players, posData, negData, rolesMap, teamName) {
     if (!nodes[src.name]) return;
     var connections = Math.min(6, Math.round((src.val/maxPos)*10));
     var others = players.filter(function(p){ return p!==src.name; });
+    var seed = strHash(src.name);
     for (var i=0; i<connections && i<others.length; i++) {
-      var tgt = others[Math.floor(Math.random()*others.length)];
+      var tgt = others[(seed + i * 7) % others.length];
       if (!nodes[tgt]) return;
       var alpha = 0.12 + (src.val/maxPos)*0.18;
       ctx.strokeStyle = 'rgba(26,122,74,' + alpha + ')';
@@ -2020,16 +2036,33 @@ function openModal() {
   var ds = d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
   var teamLabel = document.getElementById('tc-name').textContent || 'Team';
   document.querySelector('#report-modal .modal-head h3').textContent = 'Pulse Report — ' + teamLabel;
+  var completeCount = lastRosterData.filter(function(r){ return r.status==='complete'; }).length;
+  var totalCount    = lastRosterData.length;
+  var season = document.getElementById('tc-meta').textContent || 'Spring 2026';
+  var completeSub = totalCount ? (completeCount + ' of ' + totalCount + ' athletes complete') : '18 of 26 athletes complete';
   document.querySelector('#report-modal .modal-head p').textContent =
-    'Spring 2026 · 18 of 26 athletes complete · Generated ' + ds;
+    season + ' · ' + completeSub + ' · Generated ' + ds;
   document.getElementById('modal-doc-name').textContent = teamLabel.replace(/\s+/g,'_') + '_Pulse_Report.pdf';
 
   // Build data arrays for chart rendering
   var isDemo = (document.getElementById('tc-name').textContent === 'Demo Team');
-  var posArr = Object.keys(POS_DEMO).map(function(k){ return {name:k, val:POS_DEMO[k]}; });
-  var negArr = Object.keys(NEG_DEMO).map(function(k){ return {name:k, val:NEG_DEMO[k]}; });
-  var roster = isDemo ? ROSTER_DEMO : ROSTER;
-  var roles  = isDemo ? ROLES_DEMO  : {};
+  var posArr, negArr, roster, roles;
+  if (isDemo || !lastScoresData.length) {
+    posArr = Object.keys(POS_DEMO).map(function(k){ return {name:k, val:POS_DEMO[k]}; });
+    negArr = Object.keys(NEG_DEMO).map(function(k){ return {name:k, val:NEG_DEMO[k]}; });
+    roster = ROSTER_DEMO;
+    roles  = ROLES_DEMO;
+  } else {
+    var roleMap = {'Core Influencer':'inf','Rejection Risk':'rej','Isolation Risk':'iso','Polarizing Figure':'pol'};
+    posArr = lastScoresData.slice().sort(function(a,b){ return b.positive_mentions-a.positive_mentions; })
+      .map(function(s){ return {name:s.athlete_name, val:s.positive_mentions}; });
+    negArr = lastScoresData.slice().sort(function(a,b){ return b.negative_mentions-a.negative_mentions; })
+      .filter(function(s){ return s.negative_mentions>0; })
+      .map(function(s){ return {name:s.athlete_name, val:s.negative_mentions}; });
+    roster = lastRosterData.map(function(r){ return r.full_name; });
+    roles  = {};
+    lastScoresData.forEach(function(s){ roles[s.athlete_name] = roleMap[s.social_role] || 'non'; });
+  }
 
   document.getElementById('report-modal').classList.add('on');
   document.body.style.overflow = 'hidden';
@@ -2661,6 +2694,55 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 
+<!-- Edit Player -->
+<div class="modal-overlay" id="modal-edit-player">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Edit Player</h3>
+      <button class="modal-close-btn" onclick="closeModal('modal-edit-player')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ep-id">
+      <div class="fld-row">
+        <div class="fld"><label>First Name</label><input type="text" id="ep-first" placeholder="First"></div>
+        <div class="fld"><label>Last Name</label><input type="text" id="ep-last" placeholder="Last"></div>
+      </div>
+      <div class="fld"><label>Assign Team</label><select id="ep-team"></select></div>
+      <div class="err" id="ep-err"></div>
+      <div class="suc" id="ep-suc"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn bo bsm" onclick="closeModal('modal-edit-player')">Cancel</button>
+      <button class="btn bp bsm" onclick="savePlayer()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Coach -->
+<div class="modal-overlay" id="modal-edit-coach">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Edit Coach</h3>
+      <button class="modal-close-btn" onclick="closeModal('modal-edit-coach')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ec-id">
+      <div class="fld-row">
+        <div class="fld"><label>First Name</label><input type="text" id="ec-first" placeholder="First"></div>
+        <div class="fld"><label>Last Name</label><input type="text" id="ec-last" placeholder="Last"></div>
+      </div>
+      <div class="fld"><label>Email</label><input type="email" id="ec-email" placeholder="coach@university.edu"></div>
+      <div class="fld"><label>Assign Team</label><select id="ec-team"></select></div>
+      <div class="err" id="ec-err"></div>
+      <div class="suc" id="ec-suc"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn bo bsm" onclick="closeModal('modal-edit-coach')">Cancel</button>
+      <button class="btn bp bsm" onclick="saveCoach()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <!-- Confirm Reset -->
 <div class="modal-overlay" id="modal-confirm-reset">
   <div class="modal">
@@ -2980,12 +3062,13 @@ function renderQRCodes() {
 function renderCoaches() {
   var h = '';
   COACHES.forEach(function(c) {
-    h += '<div class="tbl-row" style="grid-template-columns:1.5fr 1.5fr 1fr 80px 80px">'
+    h += '<div class="tbl-row" style="grid-template-columns:1.5fr 1.5fr 1fr 80px 160px">'
        + '<div style="font-weight:500">' + c.name + '</div>'
        + '<div style="color:var(--mid);font-size:11px">' + c.email + '</div>'
        + '<div style="color:var(--mid);font-size:11px">' + c.teamName + '</div>'
        + '<div><span class="pill ' + (c.status==='active'?'pill-g':'pill-mid') + '">' + c.status + '</span></div>'
        + '<div style="display:flex;gap:4px">'
+       +   '<button class="btn bo bxs" onclick="editCoach(\'' + c.id + '\')">Edit</button>'
        +   '<button class="btn bo bxs" onclick="resetCoachPass(\'' + c.id + '\')">Reset PW</button>'
        +   '<button class="btn br bxs" onclick="deleteCoach(\'' + c.id + '\',\'' + c.name + '\')">Delete</button>'
        + '</div></div>';
@@ -3407,7 +3490,39 @@ function exportCSV(type) {
 
 // ── Panic PDF ──────────────────────────────────────────────
 function generatePanicPDF() {
-  showToast('In a live account this generates a PDF with one diagram per athlete. Connecting to print engine...');
+  if (!PANIC.length) { showToast('No panic cycle responses to export yet.'); return; }
+  var today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  var cards = '';
+  PANIC.forEach(function(p) {
+    function row(label, val) {
+      if (!val) return '';
+      return '<div style="margin-bottom:10px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:3px">'+label+'</div>'
+           + '<div style="font-size:12px;color:#222;line-height:1.5;padding:8px 12px;background:#f5f5f5;border-radius:6px">'+val+'</div></div>';
+    }
+    cards += '<div style="page-break-after:always;padding:40px 48px;font-family:Arial,sans-serif">'
+           + '<div style="border-bottom:3px solid #1A7A4A;padding-bottom:16px;margin-bottom:24px">'
+           + '<div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#888;margin-bottom:4px">RPM Systems Group — Panic Cycle Profile</div>'
+           + '<div style="font-size:26px;font-weight:900;color:#1A7A4A">'+p.athlete+'</div>'
+           + '<div style="font-size:12px;color:#888;margin-top:2px">'+p.teamName+' &nbsp;·&nbsp; Generated '+today+' &nbsp;·&nbsp; Confidential — Practitioner Only</div>'
+           + '</div>'
+           + row('Primary Trigger', p.trigger)
+           + row('Emotional Response', p.emotion)
+           + row('Body Response', p.body)
+           + row('Immediate Reaction', p.reaction)
+           + row('Behavioral Pattern', p.behavior)
+           + row('Aftermath / Recovery', p.aftermath)
+           + (p.pattern ? '<div style="margin-top:20px;padding:14px 16px;border-left:4px solid #1A7A4A;background:#f0f9f4;border-radius:0 8px 8px 0"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#1A7A4A;margin-bottom:4px">Athlete\'s Pattern Sentence</div><div style="font-size:13px;font-style:italic;color:#333">"'+p.pattern+'"</div></div>' : '')
+           + '</div>';
+  });
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Panic Cycle Profiles</title>'
+           + '<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#fff;color:#111}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>'
+           + '</head><body>'+cards+'</body></html>';
+  var w = window.open('', '_blank');
+  if (!w) { showToast('Please allow pop-ups to generate the PDF.'); return; }
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(function(){ w.print(); }, 400);
 }
 
 // ── Modal helpers ──────────────────────────────────────────
@@ -3468,8 +3583,8 @@ document.addEventListener('DOMContentLoaded', function(){
 window.adminLogin=adminLogin; window.adminLogout=adminLogout;
 window.showSection=showSection; window.openModal=openModal; window.closeModal=closeModal;
 window.createTeam=createTeam; window.editTeam=editTeam; window.saveTeam=saveTeam; window.toggleTeam=toggleTeam; window.deleteTeam=deleteTeam;
-window.addPlayer=addPlayer; window.deletePlayer=deletePlayer; window.handleCSV=handleCSV; window.submitCSV=submitCSV;
-window.addCoach=addCoach; window.resetCoachPass=resetCoachPass; window.deleteCoach=deleteCoach;
+window.addPlayer=addPlayer; window.deletePlayer=deletePlayer; window.editPlayer=editPlayer; window.savePlayer=savePlayer; window.handleCSV=handleCSV; window.submitCSV=submitCSV;
+window.addCoach=addCoach; window.resetCoachPass=resetCoachPass; window.deleteCoach=deleteCoach; window.editCoach=editCoach; window.saveCoach=saveCoach;
 window.promptReset=promptReset; window.confirmReset=confirmReset;
 window.filterRoster=filterRoster; window.filterResets=filterResets; window.filterPanic=filterPanic;
 window.showQR=showQR; window.downloadQR=downloadQR; window.copyQRLink=copyQRLink;
@@ -3731,12 +3846,13 @@ function renderRoster(filterTeam) {
   var rows = filterTeam ? ROSTER.filter(function(r){ return r.team === filterTeam; }) : ROSTER;
   var h = '';
   rows.forEach(function(r) {
-    h += '<div class="tbl-row" style="grid-template-columns:1.5fr 1fr 100px 120px 160px">'
+    h += '<div class="tbl-row" style="grid-template-columns:1.5fr 1fr 100px 120px 210px">'
        + '<div style="font-weight:500">' + r.name + '</div>'
        + '<div style="color:var(--mid);font-size:11px">' + r.teamName + '</div>'
        + '<div><span class="pill ' + (r.status==='complete'?'pill-g':'pill-mid') + '">' + (r.status==='complete'?'✓ Complete':'Pending') + '</span></div>'
        + '<div style="color:var(--mid);font-size:11px">' + r.date + '</div>'
        + '<div style="display:flex;gap:4px">'
+       +   '<button class="btn bo bxs" onclick="editPlayer(\'' + r.id + '\')">Edit</button>'
        +   '<button class="btn bo bxs" onclick="promptReset(\'' + r.id + '\',\'' + r.name + '\')">Reset</button>'
        +   '<button class="btn br bxs" onclick="deletePlayer(\'' + r.id + '\',\'' + r.name + '\')">Delete</button>'
        + '</div>'
@@ -3768,12 +3884,13 @@ function renderQRCodes() {
 function renderCoaches() {
   var h = '';
   COACHES.forEach(function(c) {
-    h += '<div class="tbl-row" style="grid-template-columns:1.5fr 1.5fr 1fr 80px 80px">'
+    h += '<div class="tbl-row" style="grid-template-columns:1.5fr 1.5fr 1fr 80px 160px">'
        + '<div style="font-weight:500">' + c.name + '</div>'
        + '<div style="color:var(--mid);font-size:11px">' + c.email + '</div>'
        + '<div style="color:var(--mid);font-size:11px">' + c.teamName + '</div>'
        + '<div><span class="pill ' + (c.status==='active'?'pill-g':'pill-mid') + '">' + c.status + '</span></div>'
        + '<div style="display:flex;gap:4px">'
+       +   '<button class="btn bo bxs" onclick="editCoach(\'' + c.id + '\')">Edit</button>'
        +   '<button class="btn bo bxs" onclick="resetCoachPass(\'' + c.id + '\')">Reset PW</button>'
        +   '<button class="btn br bxs" onclick="deleteCoach(\'' + c.id + '\',\'' + c.name + '\')">Delete</button>'
        + '</div></div>';
@@ -4047,6 +4164,93 @@ function deleteCoach(id, name) {
     .catch(function(){ alert('Failed to delete coach. Please try again.'); });
 }
 
+// ── Edit Player ────────────────────────────────────────────
+function editPlayer(id) {
+  var r = ROSTER.find(function(x){ return x.id === id; });
+  if (!r) return;
+  document.getElementById('ep-id').value = id;
+  var parts = r.name.split(' ');
+  document.getElementById('ep-first').value = parts[0] || '';
+  document.getElementById('ep-last').value  = parts.slice(1).join(' ') || '';
+  var sel = document.getElementById('ep-team');
+  sel.innerHTML = '';
+  TEAMS.forEach(function(t){ sel.innerHTML += '<option value="' + t.id + '"' + (t.id===r.team?' selected':'') + '>' + t.name + '</option>'; });
+  document.getElementById('ep-err').style.display = 'none';
+  document.getElementById('ep-suc').style.display = 'none';
+  openModal('modal-edit-player');
+}
+
+function savePlayer() {
+  var id    = document.getElementById('ep-id').value;
+  var first = document.getElementById('ep-first').value.trim();
+  var last  = document.getElementById('ep-last').value.trim();
+  var team  = document.getElementById('ep-team').value;
+  var err   = document.getElementById('ep-err');
+  var suc   = document.getElementById('ep-suc');
+  if (!first || !last) { err.textContent='First and last name are required.'; err.style.display='block'; return; }
+  err.style.display = 'none';
+  var fullName = first + ' ' + last;
+  supa('roster?id=eq.' + id, 'PATCH', {full_name: fullName, team_id: team})
+    .then(function() {
+      var r = ROSTER.find(function(x){ return x.id===id; });
+      if (r) {
+        r.name = fullName;
+        r.team = team;
+        var teamObj = TEAMS.find(function(t){ return t.id===team; });
+        r.teamName = teamObj ? teamObj.name : '';
+      }
+      renderRoster(); renderOverview();
+      suc.textContent = 'Player updated.'; suc.style.display = 'block';
+      setTimeout(function(){ closeModal('modal-edit-player'); suc.style.display='none'; }, 1500);
+    })
+    .catch(function(){ err.textContent='Failed to save changes.'; err.style.display='block'; });
+}
+
+// ── Edit Coach ─────────────────────────────────────────────
+function editCoach(id) {
+  var c = COACHES.find(function(x){ return x.id === id; });
+  if (!c) return;
+  document.getElementById('ec-id').value = id;
+  var parts = c.name.split(' ');
+  document.getElementById('ec-first').value = parts[0] || '';
+  document.getElementById('ec-last').value  = parts.slice(1).join(' ') || '';
+  document.getElementById('ec-email').value = c.email || '';
+  var sel = document.getElementById('ec-team');
+  sel.innerHTML = '';
+  TEAMS.forEach(function(t){ sel.innerHTML += '<option value="' + t.id + '"' + (t.id===c.team?' selected':'') + '>' + t.name + '</option>'; });
+  document.getElementById('ec-err').style.display = 'none';
+  document.getElementById('ec-suc').style.display = 'none';
+  openModal('modal-edit-coach');
+}
+
+function saveCoach() {
+  var id    = document.getElementById('ec-id').value;
+  var first = document.getElementById('ec-first').value.trim();
+  var last  = document.getElementById('ec-last').value.trim();
+  var email = document.getElementById('ec-email').value.trim();
+  var team  = document.getElementById('ec-team').value;
+  var err   = document.getElementById('ec-err');
+  var suc   = document.getElementById('ec-suc');
+  if (!first || !last || !email) { err.textContent='Name and email are required.'; err.style.display='block'; return; }
+  err.style.display = 'none';
+  var fullName = first + ' ' + last;
+  supa('coaches?id=eq.' + id, 'PATCH', {full_name: fullName, email: email, team_id: team})
+    .then(function() {
+      var c = COACHES.find(function(x){ return x.id===id; });
+      if (c) {
+        c.name  = fullName;
+        c.email = email;
+        c.team  = team;
+        var teamObj = TEAMS.find(function(t){ return t.id===team; });
+        c.teamName = teamObj ? teamObj.name : '';
+      }
+      renderCoaches();
+      suc.textContent = 'Coach updated.'; suc.style.display = 'block';
+      setTimeout(function(){ closeModal('modal-edit-coach'); suc.style.display='none'; }, 1500);
+    })
+    .catch(function(){ err.textContent='Failed to save changes.'; err.style.display='block'; });
+}
+
 // ── Reset actions ──────────────────────────────────────────
 function promptReset(id, name) {
   pendingResetId   = id;
@@ -4163,7 +4367,39 @@ function exportCSV(type) {
 
 // ── Panic PDF ──────────────────────────────────────────────
 function generatePanicPDF() {
-  showToast('In a live account this generates a PDF with one diagram per athlete. Connecting to print engine...');
+  if (!PANIC.length) { showToast('No panic cycle responses to export yet.'); return; }
+  var today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  var cards = '';
+  PANIC.forEach(function(p) {
+    function row(label, val) {
+      if (!val) return '';
+      return '<div style="margin-bottom:10px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:3px">'+label+'</div>'
+           + '<div style="font-size:12px;color:#222;line-height:1.5;padding:8px 12px;background:#f5f5f5;border-radius:6px">'+val+'</div></div>';
+    }
+    cards += '<div style="page-break-after:always;padding:40px 48px;font-family:Arial,sans-serif">'
+           + '<div style="border-bottom:3px solid #1A7A4A;padding-bottom:16px;margin-bottom:24px">'
+           + '<div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#888;margin-bottom:4px">RPM Systems Group — Panic Cycle Profile</div>'
+           + '<div style="font-size:26px;font-weight:900;color:#1A7A4A">'+p.athlete+'</div>'
+           + '<div style="font-size:12px;color:#888;margin-top:2px">'+p.teamName+' &nbsp;·&nbsp; Generated '+today+' &nbsp;·&nbsp; Confidential — Practitioner Only</div>'
+           + '</div>'
+           + row('Primary Trigger', p.trigger)
+           + row('Emotional Response', p.emotion)
+           + row('Body Response', p.body)
+           + row('Immediate Reaction', p.reaction)
+           + row('Behavioral Pattern', p.behavior)
+           + row('Aftermath / Recovery', p.aftermath)
+           + (p.pattern ? '<div style="margin-top:20px;padding:14px 16px;border-left:4px solid #1A7A4A;background:#f0f9f4;border-radius:0 8px 8px 0"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#1A7A4A;margin-bottom:4px">Athlete\'s Pattern Sentence</div><div style="font-size:13px;font-style:italic;color:#333">"'+p.pattern+'"</div></div>' : '')
+           + '</div>';
+  });
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Panic Cycle Profiles</title>'
+           + '<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#fff;color:#111}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>'
+           + '</head><body>'+cards+'</body></html>';
+  var w = window.open('', '_blank');
+  if (!w) { showToast('Please allow pop-ups to generate the PDF.'); return; }
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(function(){ w.print(); }, 400);
 }
 
 // ── Modal helpers ──────────────────────────────────────────
@@ -4209,8 +4445,8 @@ window.adminLogin=adminLogin; window.adminLogout=adminLogout;
 window.loadAllData=loadAllData;
 window.showSection=showSection; window.openModal=openModal; window.closeModal=closeModal;
 window.createTeam=createTeam; window.editTeam=editTeam; window.saveTeam=saveTeam; window.toggleTeam=toggleTeam; window.deleteTeam=deleteTeam;
-window.addPlayer=addPlayer; window.deletePlayer=deletePlayer; window.handleCSV=handleCSV; window.submitCSV=submitCSV;
-window.addCoach=addCoach; window.resetCoachPass=resetCoachPass; window.deleteCoach=deleteCoach;
+window.addPlayer=addPlayer; window.deletePlayer=deletePlayer; window.editPlayer=editPlayer; window.savePlayer=savePlayer; window.handleCSV=handleCSV; window.submitCSV=submitCSV;
+window.addCoach=addCoach; window.resetCoachPass=resetCoachPass; window.deleteCoach=deleteCoach; window.editCoach=editCoach; window.saveCoach=saveCoach;
 window.promptReset=promptReset; window.confirmReset=confirmReset;
 window.filterRoster=filterRoster; window.filterResets=filterResets; window.filterPanic=filterPanic;
 window.showQR=showQR; window.downloadQR=downloadQR; window.copyQRLink=copyQRLink;
