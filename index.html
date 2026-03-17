@@ -344,9 +344,14 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
 .prog-bar{height:4px;background:var(--d4);border-radius:2px;overflow:hidden;margin-top:8px}
 .prog-fill{height:100%;background:linear-gradient(90deg,var(--g),var(--gl));border-radius:2px;transition:width .4s}
 
+.ham-btn{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px;background:none;border:none}
+.ham-btn span{display:block;width:22px;height:2px;background:var(--w);border-radius:2px;transition:all .2s}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90}
+.sidebar-overlay.on{display:block}
+.sidebar.open{display:flex!important;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;width:240px;padding-top:16px}
 @media(max-width:800px){
   .admin-layout{grid-template-columns:1fr}
-  .sidebar{display:none}
+  .sidebar{display:none}.ham-btn{display:flex}
   .stat-row{grid-template-columns:1fr 1fr}
   .fld-row{grid-template-columns:1fr}
 }
@@ -2334,12 +2339,14 @@ document.addEventListener('DOMContentLoaded', function() {
     <div style="display:flex;align-items:center;gap:10px">
       <div class="logo">RPM<span>.</span>SG</div>
       <span class="nav-badge">Admin</span>
+      <button class="ham-btn" onclick="openSidebar()" aria-label="Menu"><span></span><span></span><span></span></button>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <span style="font-size:11px;color:var(--mid)" id="adm-user-label"></span>
       <button class="btn bo bsm" onclick="adminLogout()">Sign Out</button>
     </div>
   </nav>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
   <div class="admin-layout">
 
     <!-- SIDEBAR -->
@@ -2697,8 +2704,8 @@ document.addEventListener('DOMContentLoaded', function() {
 (function(){
 
 // ── Config ─────────────────────────────────────────────────
-var ADMIN_EMAIL = 'RPMadmin';
-var ADMIN_PASS  = 'RPMadmin26';
+// credentials validated against admins table in Supabase
+// credentials validated against admins table in Supabase
 
 var SUPA_URL = 'https://skdcfigtjooffalsnwbf.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrZGNmaWd0am9vZmZhbHNud2JmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTQ1MzIsImV4cCI6MjA4ODgzMDUzMn0.1A33rYXLvlRrUCbXRVT5tDsHbMyasO_OxdSHygL5WoY';
@@ -2735,18 +2742,28 @@ var DEMO_PANIC   = [];
 
 // ── Auth ───────────────────────────────────────────────────
 function adminLogin() {
-  var em = document.getElementById('adm-email').value.trim();
-  var pw = document.getElementById('adm-pass').value;
-  var err = document.getElementById('adm-err');
-  if (em === ADMIN_EMAIL && pw === ADMIN_PASS) {
-    err.style.display = 'none';
-    localStorage.setItem('rpm_admin_session', '1');
-    document.getElementById('adm-user-label').textContent = em;
-    show('s-admin');
-    loadAllData();
-  } else {
-    err.style.display = 'block';
-  }
+  var em = document.getElementById("adm-email").value.trim();
+  var pw = document.getElementById("adm-pass").value;
+  var err = document.getElementById("adm-err");
+  err.style.display = "none";
+  var btn = document.querySelector("#s-admin-login .bp");
+  if (btn) { btn.textContent = "Signing in..."; btn.style.opacity=".6"; btn.style.pointerEvents="none"; }
+  supa("admins?email=eq." + encodeURIComponent(em) + "&select=id,full_name,password")
+    .then(function(data) {
+      if (btn) { btn.textContent = "Sign In →"; btn.style.opacity=""; btn.style.pointerEvents=""; }
+      if (!data || !data.length || data[0].password !== pw) {
+        err.style.display = "block"; return;
+      }
+      localStorage.setItem("rpm_admin_session", "1");
+      document.getElementById("adm-user-label").textContent = data[0].full_name || em;
+      show("s-admin");
+      loadAllData();
+    })
+    .catch(function() {
+      if (btn) { btn.textContent = "Sign In →"; btn.style.opacity=""; btn.style.pointerEvents=""; }
+      err.textContent = "Connection error. Please try again.";
+      err.style.display = "block";
+    });
 }
 
 function adminLogout() {
@@ -3465,8 +3482,8 @@ window.exportCSV=exportCSV; window.generatePanicPDF=generatePanicPDF;
 (function(){
 
 // ── Config ─────────────────────────────────────────────────
-var ADMIN_EMAIL = 'RPMadmin';
-var ADMIN_PASS  = 'RPMadmin26';
+// credentials validated against admins table in Supabase
+// credentials validated against admins table in Supabase
 
 var SUPA_URL = 'https://skdcfigtjooffalsnwbf.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrZGNmaWd0am9vZmZhbHNud2JmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTQ1MzIsImV4cCI6MjA4ODgzMDUzMn0.1A33rYXLvlRrUCbXRVT5tDsHbMyasO_OxdSHygL5WoY';
@@ -3504,18 +3521,28 @@ var DEMO_PANIC   = [];
 
 // ── Auth ───────────────────────────────────────────────────
 function adminLogin() {
-  var em = document.getElementById('adm-email').value.trim();
-  var pw = document.getElementById('adm-pass').value;
-  var err = document.getElementById('adm-err');
-  if (em === ADMIN_EMAIL && pw === ADMIN_PASS) {
-    err.style.display = 'none';
-    localStorage.setItem('rpm_admin_session', '1');
-    document.getElementById('adm-user-label').textContent = em;
-    show('s-admin');
-    loadAllData();
-  } else {
-    err.style.display = 'block';
-  }
+  var em = document.getElementById("adm-email").value.trim();
+  var pw = document.getElementById("adm-pass").value;
+  var err = document.getElementById("adm-err");
+  err.style.display = "none";
+  var btn = document.querySelector("#s-admin-login .bp");
+  if (btn) { btn.textContent = "Signing in..."; btn.style.opacity=".6"; btn.style.pointerEvents="none"; }
+  supa("admins?email=eq." + encodeURIComponent(em) + "&select=id,full_name,password")
+    .then(function(data) {
+      if (btn) { btn.textContent = "Sign In →"; btn.style.opacity=""; btn.style.pointerEvents=""; }
+      if (!data || !data.length || data[0].password !== pw) {
+        err.style.display = "block"; return;
+      }
+      localStorage.setItem("rpm_admin_session", "1");
+      document.getElementById("adm-user-label").textContent = data[0].full_name || em;
+      show("s-admin");
+      loadAllData();
+    })
+    .catch(function() {
+      if (btn) { btn.textContent = "Sign In →"; btn.style.opacity=""; btn.style.pointerEvents=""; }
+      err.textContent = "Connection error. Please try again.";
+      err.style.display = "block";
+    });
 }
 
 function adminLogout() {
@@ -3643,6 +3670,7 @@ function showSection(id, el) {
   document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
   if (el) el.classList.add('active');
   localStorage.setItem("rpm_admin_section", id);
+  closeSidebar();
 }
 
 // ── Overview ───────────────────────────────────────────────
@@ -4187,6 +4215,21 @@ window.promptReset=promptReset; window.confirmReset=confirmReset;
 window.filterRoster=filterRoster; window.filterResets=filterResets; window.filterPanic=filterPanic;
 window.showQR=showQR; window.downloadQR=downloadQR; window.copyQRLink=copyQRLink;
 window.exportCSV=exportCSV; window.generatePanicPDF=generatePanicPDF;
+
+// ── Mobile sidebar ────────────────────────────────────────
+function openSidebar() {
+  document.querySelector('.sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+function closeSidebar() {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('on');
+  document.body.style.overflow = '';
+}
+window.openSidebar = openSidebar;
+window.closeSidebar = closeSidebar;
+
 
 })();
 
