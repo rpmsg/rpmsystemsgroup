@@ -2839,12 +2839,15 @@ function renderRoster(filterTeam) {
   var rows = filterTeam ? ROSTER.filter(function(r){ return r.team === filterTeam; }) : ROSTER;
   var h = '';
   rows.forEach(function(r) {
-    h += '<div class="tbl-row" style="grid-template-columns:1.5fr 1fr 100px 120px 80px">'
+    h += '<div class="tbl-row" style="grid-template-columns:1.5fr 1fr 100px 120px 160px">'
        + '<div style="font-weight:500">' + r.name + '</div>'
        + '<div style="color:var(--mid);font-size:11px">' + r.teamName + '</div>'
        + '<div><span class="pill ' + (r.status==='complete'?'pill-g':'pill-mid') + '">' + (r.status==='complete'?'✓ Complete':'Pending') + '</span></div>'
        + '<div style="color:var(--mid);font-size:11px">' + r.date + '</div>'
-       + '<div><button class="btn br bxs" onclick="promptReset(\'' + r.id + '\',\'' + r.name + '\')">Reset</button></div>'
+       + '<div style="display:flex;gap:4px">'
+       +   '<button class="btn bo bxs" onclick="promptReset(\'' + r.id + '\',\'' + r.name + '\')">Reset</button>'
+       +   '<button class="btn br bxs" onclick="deletePlayer(\'' + r.id + '\',\'' + r.name + '\')">Delete</button>'
+       + '</div>'
        + '</div>';
   });
   document.getElementById('roster-rows').innerHTML = h || '<div class="tbl-empty">No athletes found.</div>';
@@ -3084,6 +3087,16 @@ function addPlayer() {
         document.getElementById('ap-first').value=''; document.getElementById('ap-last').value=''; }, 1800);
     })
     .catch(function() { err.textContent='Connection error.'; err.style.display='block'; });
+}
+
+function deletePlayer(id, name) {
+  if (!confirm('Remove "' + name + '" from the roster?\n\nThis cannot be undone.')) return;
+  supa('roster?id=eq.' + id, 'DELETE')
+    .then(function() {
+      ROSTER = ROSTER.filter(function(r){ return r.id !== id; });
+      renderRoster(); renderOverview();
+    })
+    .catch(function(){ alert('Failed to delete player. Please try again.'); });
 }
 
 function handleCSV(input) {
@@ -3350,7 +3363,7 @@ document.addEventListener('DOMContentLoaded', function(){
 window.adminLogin=adminLogin; window.adminLogout=adminLogout;
 window.showSection=showSection; window.openModal=openModal; window.closeModal=closeModal;
 window.createTeam=createTeam; window.editTeam=editTeam; window.saveTeam=saveTeam; window.toggleTeam=toggleTeam; window.deleteTeam=deleteTeam;
-window.addPlayer=addPlayer; window.handleCSV=handleCSV; window.submitCSV=submitCSV;
+window.addPlayer=addPlayer; window.deletePlayer=deletePlayer; window.handleCSV=handleCSV; window.submitCSV=submitCSV;
 window.addCoach=addCoach; window.resetCoachPass=resetCoachPass; window.deleteCoach=deleteCoach;
 window.promptReset=promptReset; window.confirmReset=confirmReset;
 window.filterRoster=filterRoster; window.filterResets=filterResets; window.filterPanic=filterPanic;
@@ -3579,12 +3592,15 @@ function renderRoster(filterTeam) {
   var rows = filterTeam ? ROSTER.filter(function(r){ return r.team === filterTeam; }) : ROSTER;
   var h = '';
   rows.forEach(function(r) {
-    h += '<div class="tbl-row" style="grid-template-columns:1.5fr 1fr 100px 120px 80px">'
+    h += '<div class="tbl-row" style="grid-template-columns:1.5fr 1fr 100px 120px 160px">'
        + '<div style="font-weight:500">' + r.name + '</div>'
        + '<div style="color:var(--mid);font-size:11px">' + r.teamName + '</div>'
        + '<div><span class="pill ' + (r.status==='complete'?'pill-g':'pill-mid') + '">' + (r.status==='complete'?'✓ Complete':'Pending') + '</span></div>'
        + '<div style="color:var(--mid);font-size:11px">' + r.date + '</div>'
-       + '<div><button class="btn br bxs" onclick="promptReset(\'' + r.id + '\',\'' + r.name + '\')">Reset</button></div>'
+       + '<div style="display:flex;gap:4px">'
+       +   '<button class="btn bo bxs" onclick="promptReset(\'' + r.id + '\',\'' + r.name + '\')">Reset</button>'
+       +   '<button class="btn br bxs" onclick="deletePlayer(\'' + r.id + '\',\'' + r.name + '\')">Delete</button>'
+       + '</div>'
        + '</div>';
   });
   document.getElementById('roster-rows').innerHTML = h || '<div class="tbl-empty">No athletes found.</div>';
@@ -4024,7 +4040,7 @@ document.addEventListener('DOMContentLoaded', function(){
 window.adminLogin=adminLogin; window.adminLogout=adminLogout;
 window.showSection=showSection; window.openModal=openModal; window.closeModal=closeModal;
 window.createTeam=createTeam; window.editTeam=editTeam; window.saveTeam=saveTeam; window.toggleTeam=toggleTeam; window.deleteTeam=deleteTeam;
-window.addPlayer=addPlayer; window.handleCSV=handleCSV; window.submitCSV=submitCSV;
+window.addPlayer=addPlayer; window.deletePlayer=deletePlayer; window.handleCSV=handleCSV; window.submitCSV=submitCSV;
 window.addCoach=addCoach; window.resetCoachPass=resetCoachPass; window.deleteCoach=deleteCoach;
 window.promptReset=promptReset; window.confirmReset=confirmReset;
 window.filterRoster=filterRoster; window.filterResets=filterResets; window.filterPanic=filterPanic;
