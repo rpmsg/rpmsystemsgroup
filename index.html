@@ -1218,6 +1218,34 @@ function donePC()  { setSB('pc11', true); showB('brk-social'); }
 function startSM() { document.getElementById('ilbl').textContent = 'Social Map Survey'; showB('q-sm1'); setSB('sm1', false); }
 function nsm(n)    { setSB('sm' + n, false); showB('q-sm' + n); }
 
+function qErr(msg) {
+  var qb = document.querySelector('.qb.on');
+  if (!qb) return;
+  var nav = qb.querySelector('.qnav');
+  if (!nav) return;
+  var e = nav.querySelector('.q-err');
+  if (!e) { e = document.createElement('span'); e.className = 'q-err'; e.style.cssText = 'color:#e05252;font-size:12px;display:block;margin-top:10px'; nav.appendChild(e); }
+  e.textContent = msg;
+  clearTimeout(e._t);
+  e._t = setTimeout(function(){ e.textContent = ''; }, 3500);
+}
+
+function validateCurrent(section, n) {
+  if (section === 'pc') {
+    if (n === 9) {
+      var txt = document.getElementById('txt-pc9');
+      if (!txt || !txt.value.trim()) { qErr('Please write your sentence before continuing.'); return false; }
+    } else {
+      var c = document.getElementById('c-pc' + n);
+      if (!c || !c.querySelector('.sel')) { qErr('Please make a selection before continuing.'); return false; }
+    }
+  } else {
+    var g = document.getElementById('r-sm' + n);
+    if (!g || !g.querySelector('.sel,.neg')) { qErr('Please select at least one teammate before continuing.'); return false; }
+  }
+  return true;
+}
+
 function getSelected(cid) {
   var c = document.getElementById(cid);
   if (!c) return null;
@@ -2494,7 +2522,10 @@ document.addEventListener('DOMContentLoaded', function() {
     else if (a === 'proceedFromConsent') proceedFromConsent();
     else if (a === 'openPrivacy')        openPrivacyModal();
     else if (a === 'startPC')            startPC();
-    else if (a === 'donePC')             donePC();
+    else if (a === 'donePC') {
+      if (!validateCurrent('pc', 11)) return;
+      donePC();
+    }
     else if (a === 'startSM')            startSM();
     else if (a === 'submitIntake')       submitIntake();
     else if (a === 'coachLogin')         coachLogin();
@@ -2502,8 +2533,18 @@ document.addEventListener('DOMContentLoaded', function() {
     else if (a === 'closeModal')         closeModal();
     else if (a === 'downloadReport')     downloadReport();
     else if (a === 'selR')               selR(el);
-    else if (a === 'npc')                npc(parseInt(el.getAttribute('data-n')));
-    else if (a === 'nsm')                nsm(parseInt(el.getAttribute('data-n')));
+    else if (a === 'npc') {
+      var npcN = parseInt(el.getAttribute('data-n'));
+      var npcCur = document.querySelector('.qb.on');
+      if (npcCur) { var npcM = npcCur.id.match(/^q-pc(\d+)$/); if (npcM && npcN > parseInt(npcM[1]) && !validateCurrent('pc', parseInt(npcM[1]))) return; }
+      npc(npcN);
+    }
+    else if (a === 'nsm') {
+      var nsmN = parseInt(el.getAttribute('data-n'));
+      var nsmCur = document.querySelector('.qb.on');
+      if (nsmCur) { var nsmM = nsmCur.id.match(/^q-sm(\d+)$/); if (nsmM && nsmN > parseInt(nsmM[1]) && !validateCurrent('sm', parseInt(nsmM[1]))) return; }
+      nsm(nsmN);
+    }
     else if (a === 'single')             single(el, el.getAttribute('data-key'));
     else if (a === 'multi')              multi(el, el.getAttribute('data-key'), parseInt(el.getAttribute('data-max')));
   });
