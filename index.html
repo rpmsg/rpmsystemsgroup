@@ -1360,7 +1360,7 @@ function buildDashWithData(rosterData, scoresData) {
   });
   document.getElementById('coach-roster-rows').innerHTML = h;
 
-  if (!scoresData || !scoresData.length) { buildChartsDemo(); return; }
+  if (!scoresData || !scoresData.length) { buildChartsEmpty(); return; }
 
   // Positive bars
   var topPos = scoresData.slice(0,8);
@@ -1471,6 +1471,17 @@ function buildDashDemo() {
   });
   document.getElementById('coach-roster-rows').innerHTML = h;
   buildChartsDemo();
+}
+
+function buildChartsEmpty() {
+  var msg = '<div style="padding:24px;text-align:center;color:var(--mid);font-size:13px">No data yet — waiting for athlete submissions.</div>';
+  document.getElementById('pos-bars').innerHTML = msg;
+  document.getElementById('neg-bars').innerHTML = msg;
+  document.getElementById('risk-grid').innerHTML = msg;
+  document.getElementById('suggestions').innerHTML = msg;
+  document.getElementById('pp-triggers').innerHTML = msg;
+  document.getElementById('pp-behaviors').innerHTML = msg;
+  document.getElementById('pp-insight').innerHTML = '';
 }
 
 function buildChartsDemo() {
