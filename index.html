@@ -1008,6 +1008,7 @@ function showErr(id, msg) {
 function toTitleCase(str) {
   return str.replace(/\w\S*/g, function(w){ return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); });
 }
+window.toTitleCase = toTitleCase;
 
 function valCode() {
   var code = document.getElementById('inp-code').value.trim().toUpperCase();
@@ -3157,7 +3158,7 @@ function handleCSV(input) {
     // Also treat as header if first row has no spaces and is all letters/underscores
     if (!hasHeader && /^[a-z_]+$/.test(firstRow)) hasHeader = true;
     csvParsedNames = (hasHeader ? lines.slice(1) : lines)
-      .map(function(l){ return toTitleCase(l.split(',')[0].trim()); })
+      .map(function(l){ return window.toTitleCase(l.split(',')[0].trim()); })
       .filter(Boolean);
     if (!csvParsedNames.length) {
       document.getElementById('csv-err').textContent = 'No athlete names found in file.';
@@ -3385,7 +3386,7 @@ document.addEventListener('DOMContentLoaded', function(){
   if (localStorage.getItem('rpm_admin_session') && lastScreen === 's-admin') {
     show('s-admin');
     document.getElementById('adm-user-label').textContent = 'Admin';
-    loadAllData();
+    window.loadAllData();
     restoreAdminSection();
   } else if (coachTeam && lastScreen === 's-dash') {
     show('s-dash');
@@ -3914,7 +3915,7 @@ function handleCSV(input) {
     // Also treat as header if first row has no spaces and is all letters/underscores
     if (!hasHeader && /^[a-z_]+$/.test(firstRow)) hasHeader = true;
     csvParsedNames = (hasHeader ? lines.slice(1) : lines)
-      .map(function(l){ return toTitleCase(l.split(',')[0].trim()); })
+      .map(function(l){ return window.toTitleCase(l.split(',')[0].trim()); })
       .filter(Boolean);
     if (!csvParsedNames.length) {
       document.getElementById('csv-err').textContent = 'No athlete names found in file.';
@@ -4060,6 +4061,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
 // Expose functions used in onclick attributes
 window.adminLogin=adminLogin; window.adminLogout=adminLogout;
+window.loadAllData=loadAllData;
 window.showSection=showSection; window.openModal=openModal; window.closeModal=closeModal;
 window.createTeam=createTeam; window.editTeam=editTeam; window.saveTeam=saveTeam; window.toggleTeam=toggleTeam; window.deleteTeam=deleteTeam;
 window.addPlayer=addPlayer; window.deletePlayer=deletePlayer; window.handleCSV=handleCSV; window.submitCSV=submitCSV;
