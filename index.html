@@ -2559,7 +2559,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
     <div class="modal-body">
       <div class="fld"><label>Team</label><select id="csv-team"></select></div>
-      <div class="notice info" style="margin-bottom:14px"><span class="notice-ico">ℹ</span><p>CSV must have a single column with a header row of <strong>full_name</strong>. One athlete per row.</p></div>
+      <div class="notice info" style="margin-bottom:14px"><span class="notice-ico">ℹ</span><p>One athlete name per row. Header row is optional — works with exports from Excel, Google Sheets, or any roster system.</p></div>
       <div class="upload-zone" id="upload-zone" onclick="document.getElementById('csv-file').click()">
         <div class="uz-ico">📂</div>
         <strong style="font-size:13px">Click to select CSV</strong>
@@ -3144,14 +3144,26 @@ function handleCSV(input) {
   document.getElementById('csv-filename').textContent = file.name;
   var reader = new FileReader();
   reader.onload = function(e) {
-    var lines = e.target.result.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
-    var header = lines[0].toLowerCase();
-    if (!header.includes('full_name') && !header.includes('name')) {
-      document.getElementById('csv-err').textContent = 'CSV must have a "full_name" header column.';
+    var lines = e.target.result.split('\n').map(function(l){ return l.trim().replace(/^"|"$/g,''); }).filter(Boolean);
+    if (!lines.length) {
+      document.getElementById('csv-err').textContent = 'File appears to be empty.';
       document.getElementById('csv-err').style.display = 'block';
       return;
     }
-    csvParsedNames = lines.slice(1).filter(Boolean);
+    // Detect header row — common name column headers
+    var nameHeaders = ['full_name','name','athlete','athlete name','player','player name','fullname'];
+    var firstRow = lines[0].toLowerCase().replace(/[^a-z_ ]/g,'').trim();
+    var hasHeader = nameHeaders.some(function(h){ return firstRow === h; });
+    // Also treat as header if first row has no spaces and is all letters/underscores
+    if (!hasHeader && /^[a-z_]+$/.test(firstRow)) hasHeader = true;
+    csvParsedNames = (hasHeader ? lines.slice(1) : lines)
+      .map(function(l){ return toTitleCase(l.split(',')[0].trim()); })
+      .filter(Boolean);
+    if (!csvParsedNames.length) {
+      document.getElementById('csv-err').textContent = 'No athlete names found in file.';
+      document.getElementById('csv-err').style.display = 'block';
+      return;
+    }
     document.getElementById('csv-count').textContent = csvParsedNames.length + ' athletes found in file:';
     document.getElementById('csv-names').innerHTML = csvParsedNames.map(function(n){ return '<div>' + n + '</div>'; }).join('');
     document.getElementById('csv-preview').style.display = 'block';
@@ -3889,14 +3901,26 @@ function handleCSV(input) {
   document.getElementById('csv-filename').textContent = file.name;
   var reader = new FileReader();
   reader.onload = function(e) {
-    var lines = e.target.result.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
-    var header = lines[0].toLowerCase();
-    if (!header.includes('full_name') && !header.includes('name')) {
-      document.getElementById('csv-err').textContent = 'CSV must have a "full_name" header column.';
+    var lines = e.target.result.split('\n').map(function(l){ return l.trim().replace(/^"|"$/g,''); }).filter(Boolean);
+    if (!lines.length) {
+      document.getElementById('csv-err').textContent = 'File appears to be empty.';
       document.getElementById('csv-err').style.display = 'block';
       return;
     }
-    csvParsedNames = lines.slice(1).filter(Boolean);
+    // Detect header row — common name column headers
+    var nameHeaders = ['full_name','name','athlete','athlete name','player','player name','fullname'];
+    var firstRow = lines[0].toLowerCase().replace(/[^a-z_ ]/g,'').trim();
+    var hasHeader = nameHeaders.some(function(h){ return firstRow === h; });
+    // Also treat as header if first row has no spaces and is all letters/underscores
+    if (!hasHeader && /^[a-z_]+$/.test(firstRow)) hasHeader = true;
+    csvParsedNames = (hasHeader ? lines.slice(1) : lines)
+      .map(function(l){ return toTitleCase(l.split(',')[0].trim()); })
+      .filter(Boolean);
+    if (!csvParsedNames.length) {
+      document.getElementById('csv-err').textContent = 'No athlete names found in file.';
+      document.getElementById('csv-err').style.display = 'block';
+      return;
+    }
     document.getElementById('csv-count').textContent = csvParsedNames.length + ' athletes found in file:';
     document.getElementById('csv-names').innerHTML = csvParsedNames.map(function(n){ return '<div>' + n + '</div>'; }).join('');
     document.getElementById('csv-preview').style.display = 'block';
