@@ -2557,7 +2557,6 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
       <div class="fld"><label>Email</label><input type="email" id="ac-email" placeholder="coach@university.edu"></div>
       <div class="fld"><label>Assign Team</label><select id="ac-team"></select></div>
-      <div class="fld"><label>Temporary Password</label><input type="text" id="ac-pass" placeholder="They can change on first login"></div>
       <div class="err" id="ac-err"></div>
       <div class="suc" id="ac-suc"></div>
     </div>
@@ -3137,10 +3136,9 @@ function addCoach() {
   var last  = document.getElementById('ac-last').value.trim();
   var email = document.getElementById('ac-email').value.trim();
   var team  = document.getElementById('ac-team').value;
-  var pass  = document.getElementById('ac-pass').value.trim();
   var err   = document.getElementById('ac-err');
   var suc   = document.getElementById('ac-suc');
-  if (!first||!last||!email||!team||!pass){ err.textContent='All fields required.'; err.style.display='block'; return; }
+  if (!first||!last||!email||!team){ err.textContent='All fields required.'; err.style.display='block'; return; }
   err.style.display = 'none';
   supa('coaches', 'POST', {full_name:first+' '+last, email:email, team_id:team, status:'active'})
     .then(function(data) {
@@ -3156,7 +3154,7 @@ function addCoach() {
       suc.style.display = 'block';
       setTimeout(function(){ closeModal('modal-add-coach'); suc.style.display='none';
         document.getElementById('ac-first').value=''; document.getElementById('ac-last').value='';
-        document.getElementById('ac-email').value=''; document.getElementById('ac-pass').value=''; }, 1800);
+        document.getElementById('ac-email').value=''; }, 1800);
     })
     .catch(function(){ err.textContent='Connection error.'; err.style.display='block'; });
 }
@@ -3803,10 +3801,9 @@ function addCoach() {
   var last  = document.getElementById('ac-last').value.trim();
   var email = document.getElementById('ac-email').value.trim();
   var team  = document.getElementById('ac-team').value;
-  var pass  = document.getElementById('ac-pass').value.trim();
   var err   = document.getElementById('ac-err');
   var suc   = document.getElementById('ac-suc');
-  if (!first||!last||!email||!team||!pass){ err.textContent='All fields required.'; err.style.display='block'; return; }
+  if (!first||!last||!email||!team){ err.textContent='All fields required.'; err.style.display='block'; return; }
   err.style.display = 'none';
   supa('coaches', 'POST', {full_name:first+' '+last, email:email, team_id:team, status:'active'})
     .then(function(data) {
@@ -3818,7 +3815,7 @@ function addCoach() {
       suc.textContent='Login created for '+first+' '+last+'.'; suc.style.display='block';
       setTimeout(function(){ closeModal('modal-add-coach'); suc.style.display='none';
         document.getElementById('ac-first').value=''; document.getElementById('ac-last').value='';
-        document.getElementById('ac-email').value=''; document.getElementById('ac-pass').value=''; }, 1800);
+        document.getElementById('ac-email').value=''; }, 1800);
     })
     .catch(function(){ err.textContent='Connection error.'; err.style.display='block'; });
 }
