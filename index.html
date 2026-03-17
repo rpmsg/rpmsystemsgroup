@@ -802,7 +802,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
   <div class="cfwrap">
     <div class="ico">✅</div>
     <h2>Assessment Complete</h2>
-    <p>Your responses have been submitted. You will review your results with your RPM practitioner in your upcoming session.</p>
+    <p>Your responses have been saved. Your RPM practitioner will walk you through your results in your next session.</p>
     <div class="cfcard">
       <h4>Your Submission</h4>
       <div class="cfrow"><span>Athlete</span><span id="cf-name">—</span></div>
@@ -845,6 +845,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
     <div class="ntag">Coach Dashboard</div>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="btn bp bsm" data-action="openModal" id="btn-gen-report">📊 Generate Pulse Report</button>
+      <button class="btn bo bsm" onclick="showChangePass(false)">🔑 Change Password</button>
       <button class="btn bo bsm" onclick="localStorage.removeItem('rpm_coach_team');localStorage.removeItem('rpm_screen');localStorage.removeItem('rpm_coach_name');show('s-land')">← Sign Out</button>
     </div>
   </nav>
@@ -1313,6 +1314,8 @@ function populateConfirmation(pc) {
 }
 
 // ── Coach login ────────────────────────────────────────────
+var currentCoachId = '';
+
 function coachLogin() {
   var em = document.getElementById('inp-email').value.trim();
   var pw = document.getElementById('inp-pass').value;
@@ -1320,7 +1323,7 @@ function coachLogin() {
   setLoading('btn-coach-login', true, 'Access Dashboard →');
 
   // Coach login — checks Supabase coaches table
-  supa('coaches?email=eq.' + encodeURIComponent(em) + '&select=id,full_name,team_id,password')
+  supa('coaches?email=eq.' + encodeURIComponent(em) + '&select=id,full_name,team_id,password,must_change_password')
     .then(function(data) {
       if (!data || !data.length || data[0].password !== pw) {
         showErr('login-err', 'Invalid credentials.');
@@ -1328,16 +1331,98 @@ function coachLogin() {
         return;
       }
       setLoading('btn-coach-login', false, 'Access Dashboard →');
+      currentCoachId = data[0].id;
       localStorage.setItem('rpm_coach_team', data[0].team_id);
       localStorage.setItem('rpm_coach_name', data[0].full_name);
-      show('s-dash');
-      buildDash(data[0].team_id);
+      localStorage.setItem('rpm_coach_id', data[0].id);
+      if (data[0].must_change_password) {
+        show('s-dash');
+        buildDash(data[0].team_id);
+        showChangePass(true);
+      } else {
+        show('s-dash');
+        buildDash(data[0].team_id);
+      }
     })
     .catch(function() {
       showErr('login-err', 'Connection error. Please try again.');
       setLoading('btn-coach-login', false, 'Access Dashboard →');
     });
 }
+
+// ── Coach password change ───────────────────────────────────
+var changePassForced = false;
+
+function showChangePass(forced) {
+  changePassForced = forced;
+  document.getElementById('chpass-title').textContent  = forced ? 'Set Your Password' : 'Change Password';
+  document.getElementById('chpass-sub').textContent    = forced
+    ? 'Your administrator has set a temporary password. Please set a new one before continuing.'
+    : 'Enter your current password, then choose a new one.';
+  document.getElementById('chpass-current-wrap').style.display = forced ? 'none' : 'block';
+  document.getElementById('chpass-cancel-btn').style.display   = forced ? 'none' : '';
+  document.getElementById('chpass-current').value = '';
+  document.getElementById('chpass-new').value     = '';
+  document.getElementById('chpass-confirm').value = '';
+  document.getElementById('chpass-err').style.display = 'none';
+  document.getElementById('chpass-suc').style.display = 'none';
+  document.getElementById('modal-change-pass').classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeChangePass() {
+  if (changePassForced) return; // cannot dismiss forced change
+  document.getElementById('modal-change-pass').classList.remove('on');
+  document.body.style.overflow = '';
+}
+
+function saveNewPassword() {
+  var err     = document.getElementById('chpass-err');
+  var suc     = document.getElementById('chpass-suc');
+  var current = document.getElementById('chpass-current').value;
+  var newPw   = document.getElementById('chpass-new').value;
+  var confirm = document.getElementById('chpass-confirm').value;
+  err.style.display = 'none';
+
+  if (!changePassForced && !current) {
+    err.textContent = 'Please enter your current password.'; err.style.display = 'block'; return;
+  }
+  if (newPw.length < 8) {
+    err.textContent = 'New password must be at least 8 characters.'; err.style.display = 'block'; return;
+  }
+  if (newPw !== confirm) {
+    err.textContent = 'Passwords do not match.'; err.style.display = 'block'; return;
+  }
+
+  var coachId = currentCoachId || localStorage.getItem('rpm_coach_id');
+  if (!coachId) { err.textContent = 'Session error — please sign out and back in.'; err.style.display = 'block'; return; }
+
+  // If not forced, verify current password first
+  var checkPromise = changePassForced
+    ? Promise.resolve(true)
+    : supa('coaches?id=eq.' + coachId + '&select=password').then(function(d) {
+        return d && d.length && d[0].password === current;
+      });
+
+  checkPromise.then(function(valid) {
+    if (!valid) { err.textContent = 'Current password is incorrect.'; err.style.display = 'block'; return; }
+    return supa('coaches?id=eq.' + coachId, 'PATCH', {password: newPw, must_change_password: false})
+      .then(function() {
+        suc.textContent = 'Password updated successfully.';
+        suc.style.display = 'block';
+        setTimeout(function() {
+          document.getElementById('modal-change-pass').classList.remove('on');
+          document.body.style.overflow = '';
+        }, 1400);
+      });
+  }).catch(function() {
+    err.textContent = 'Failed to update password. Please try again.';
+    err.style.display = 'block';
+  });
+}
+window.showChangePass  = showChangePass;
+window.closeChangePass = closeChangePass;
+window.saveNewPassword = saveNewPassword;
 
 // ── Coach dashboard ────────────────────────────────────────
 function buildDash(teamId) {
@@ -2355,6 +2440,38 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 </script>
 
+<!-- CHANGE PASSWORD MODAL -->
+<div class="modal-overlay" id="modal-change-pass">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-head">
+      <div>
+        <h3 id="chpass-title">Set Your Password</h3>
+        <p id="chpass-sub">Choose a password you'll use to access your dashboard.</p>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="fld" id="chpass-current-wrap">
+        <label>Current Password</label>
+        <input type="password" id="chpass-current" placeholder="Your current password">
+      </div>
+      <div class="fld">
+        <label>New Password</label>
+        <input type="password" id="chpass-new" placeholder="At least 8 characters">
+      </div>
+      <div class="fld">
+        <label>Confirm New Password</label>
+        <input type="password" id="chpass-confirm" placeholder="Repeat new password">
+      </div>
+      <div class="err" id="chpass-err"></div>
+      <div class="suc" id="chpass-suc"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn bo bsm" id="chpass-cancel-btn" onclick="closeChangePass()">Cancel</button>
+      <button class="btn bp bsm" onclick="saveNewPassword()">Update Password →</button>
+    </div>
+  </div>
+</div>
+
 <!-- PRIVACY POLICY MODAL -->
 <div class="modal-overlay" id="privacy-modal" onclick="if(event.target===this)closePrivacyModal()">
   <div class="modal" style="max-width:620px;max-height:85vh">
@@ -2778,7 +2895,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="fld"><label>Last Name</label><input type="text" id="ac-last" placeholder="Last"></div>
       </div>
       <div class="fld"><label>Email</label><input type="email" id="ac-email" placeholder="coach@university.edu"></div>
-      <div class="fld"><label>Password</label><input type="text" id="ac-pass" placeholder="They will use this to log in"></div>
+      <div class="fld"><label>Temporary Password</label><input type="text" id="ac-pass" placeholder="Coach will set their own on first login"></div>
       <div class="fld"><label>Assign Team</label><select id="ac-team"></select></div>
       <div class="err" id="ac-err"></div>
       <div class="suc" id="ac-suc"></div>
@@ -3462,7 +3579,7 @@ function addCoach() {
   var suc   = document.getElementById('ac-suc');
   if (!first||!last||!email||!pass||!team){ err.textContent='All fields required.'; err.style.display='block'; return; }
   err.style.display = 'none';
-  supa('coaches', 'POST', {full_name:first+' '+last, email:email, password:pass, team_id:team})
+  supa('coaches', 'POST', {full_name:first+' '+last, email:email, password:pass, team_id:team, must_change_password:true})
     .then(function(data) {
       if (!data || data.code || data.error) {
         err.textContent = (data && (data.message||data.error)) || 'Failed to create coach login.';
@@ -3472,11 +3589,11 @@ function addCoach() {
       var teamObj = TEAMS.find(function(t){ return t.id===team; });
       COACHES.push({id:created.id, name:first+' '+last, email:email, team:team, teamName:teamObj?teamObj.name:'', status:'active'});
       renderCoaches();
-      suc.textContent = 'Login created for ' + first + ' ' + last + '.';
+      suc.textContent = 'Login created for ' + first + ' ' + last + '. They will be prompted to set their own password on first login.';
       suc.style.display = 'block';
       setTimeout(function(){ closeModal('modal-add-coach'); suc.style.display='none';
         document.getElementById('ac-first').value=''; document.getElementById('ac-last').value='';
-        document.getElementById('ac-email').value=''; document.getElementById('ac-pass').value=''; }, 1800);
+        document.getElementById('ac-email').value=''; document.getElementById('ac-pass').value=''; }, 2200);
     })
     .catch(function(){ err.textContent='Connection error.'; err.style.display='block'; });
 }
@@ -3669,6 +3786,8 @@ document.addEventListener('DOMContentLoaded', function(){
     show('s-dash');
     var coachName = localStorage.getItem('rpm_coach_name') || 'Coach';
     document.getElementById('tc-name').textContent = coachName;
+    // Restore coach ID so Change Password works after session restore
+    if (typeof currentCoachId !== 'undefined') currentCoachId = localStorage.getItem('rpm_coach_id') || '';
     window.buildDash(coachTeam);
   } else if (lastScreen && lastScreen !== 's-land') {
     show(lastScreen);
@@ -4198,17 +4317,17 @@ function addCoach() {
   var suc   = document.getElementById('ac-suc');
   if (!first||!last||!email||!pass||!team){ err.textContent='All fields required.'; err.style.display='block'; return; }
   err.style.display = 'none';
-  supa('coaches', 'POST', {full_name:first+' '+last, email:email, password:pass, team_id:team})
+  supa('coaches', 'POST', {full_name:first+' '+last, email:email, password:pass, team_id:team, must_change_password:true})
     .then(function(data) {
       if (!data || data.code || data.error) { err.textContent=(data&&(data.message||data.error))||'Failed to create coach.'; err.style.display='block'; return; }
       var created = Array.isArray(data) ? data[0] : data;
       var teamObj = TEAMS.find(function(t){ return t.id===team; });
       COACHES.push({id:created.id, name:first+' '+last, email:email, team:team, teamName:teamObj?teamObj.name:'', status:'active'});
       renderCoaches();
-      suc.textContent='Login created for '+first+' '+last+'.'; suc.style.display='block';
+      suc.textContent='Login created for '+first+' '+last+'. They will be prompted to set their own password on first login.'; suc.style.display='block';
       setTimeout(function(){ closeModal('modal-add-coach'); suc.style.display='none';
         document.getElementById('ac-first').value=''; document.getElementById('ac-last').value='';
-        document.getElementById('ac-email').value=''; document.getElementById('ac-pass').value=''; }, 1800);
+        document.getElementById('ac-email').value=''; document.getElementById('ac-pass').value=''; }, 2200);
     })
     .catch(function(){ err.textContent='Connection error.'; err.style.display='block'; });
 }
