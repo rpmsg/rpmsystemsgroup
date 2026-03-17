@@ -210,6 +210,33 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 2
 @media(max-width:400px){
   .rg{grid-template-columns:1fr}
 }
+@media(max-width:480px){
+  /* Landing — cards stack and stretch full width */
+  .cards{flex-direction:column;align-items:stretch}
+  .card{min-width:unset}
+  /* Progress bar — thicker and label readable */
+  .pt{height:6px}
+  .pml{font-size:12px;letter-spacing:0}
+  /* Section + question meta labels */
+  .qmeta{font-size:11px;letter-spacing:2px}
+  .qs{font-size:13px}
+  /* Choice buttons — taller tap targets, bigger text */
+  .choice{padding:15px;font-size:14px;gap:14px}
+  .chk{width:20px;height:20px;flex-shrink:0}
+  /* Roster grid items — taller tap targets */
+  .ri{padding:13px 14px;font-size:13px;gap:10px}
+  .av{width:28px;height:28px;font-size:9px}
+  /* Nav buttons — full width stacked */
+  .qnav{flex-direction:column;gap:10px}
+  .qnav .btn{width:100%;padding:15px 20px;font-size:14px}
+  /* Text area — easier to type on phone */
+  .ta textarea{min-height:110px;font-size:14px}
+  /* Box forms — tighten padding slightly */
+  .box{padding:24px 18px}
+  /* Break screens — less top/bottom space, full-width CTA */
+  .brk{padding:30px 20px}
+  .brk .btn{width:100%;max-width:320px;padding:15px 20px;font-size:15px}
+}
 
 /* ADMIN PANEL */
 :root{--g:#1A7A4A;--gl:#43B878;--r:#C0392B;--rl:#e05a4a;--d:#0f0f0f;--d2:#1a1a1a;--d3:#242424;--d4:#2e2e2e;--mid:#888;--w:#fff;--bdr:rgba(255,255,255,0.08);--amber:#b07800;--amberl:#f0b030}
@@ -1429,7 +1456,7 @@ function buildDash(teamId) {
   // Load live data — get the team assigned to this coach
   supa('teams?id=eq.' + teamId + '&select=id,name,team_code,season&limit=1')
     .then(function(teams) {
-      if (!teams || !teams.length) { buildDashDemo(); return; }
+      if (!teams || !teams.length) { buildDashError('Team not found. Please contact your administrator.'); return; }
       var team = teams[0];
       currentTeamId = team.id;
       // Update sidebar
@@ -1448,7 +1475,7 @@ function buildDash(teamId) {
       buildDashWithData(results[0], results[1], results[2]);
     })
     .catch(function() {
-      buildDashDemo();
+      buildDashError('Connection error. Check your internet and refresh.');
     });
 }
 
@@ -1506,9 +1533,13 @@ function buildDashWithData(rosterData, scoresData, panicData) {
   buildSuggestions(scoresData);
   buildPanicProfileFromData(panicData || []);
 
-  // Update stat tiles
+  // Update stat tiles + sidebar progress bar
   var complete = rosterData.filter(function(r){return r.status==='complete';}).length;
   var pending  = rosterData.length - complete;
+  var total    = rosterData.length;
+  var pct      = total > 0 ? Math.round(complete/total*100) : 0;
+  document.getElementById('tc-bar').style.width = pct + '%';
+  document.getElementById('tc-progress').textContent = complete + '/' + total + ' complete';
   var coreInf  = scoresData.filter(function(s){return s.social_role==='Core Influencer';}).length;
   var friction = scoresData.filter(function(s){return s.negative_mentions>=8;}).length;
   document.querySelector('.stats').innerHTML =
@@ -1552,8 +1583,9 @@ function buildSuggestions(scoresData) {
   if (isoCount > 0) {
     sg.push({i:'🔗', t:'<strong>' + isoCount + ' Isolation Risk player' + (isoCount>1?'s':'') + '</strong> — Intentional grouping with Core Influencers in training and travel may help build connection naturally.'});
   }
-  sg.push({i:'📊', t:'<strong>Most common trigger</strong> is visible mistakes in games. Consider implementing RPM Timeouts specifically after errors in the next 3 practices.'});
-  sg.push({i:'🧠', t:'<strong>Panic pattern</strong> — Multiple athletes report hesitating and second-guessing as their primary behavioral response. Green Loop reinforcement drills recommended.'});
+  if (!sg.length) {
+    sg.push({i:'✅', t:'<strong>No significant friction patterns detected.</strong> Team dynamics look healthy based on current data. Continue monitoring as more athletes complete the assessment.'});
+  }
   var sh = '';
   sg.forEach(function(s) { sh += '<div class="si"><span class="sico">' + s.i + '</span><p class="stxt">' + s.t + '</p></div>'; });
   document.getElementById('suggestions').innerHTML = sh;
@@ -1601,6 +1633,8 @@ function buildChartsEmpty() {
 
 function buildDashEmpty() {
   // Real team exists but no athletes on roster yet
+  document.getElementById('tc-bar').style.width = '0%';
+  document.getElementById('tc-progress').textContent = '0 athletes';
   document.querySelector('.stats').innerHTML =
     '<div class="stat"><div class="sv g">0</div><div class="sl">Complete</div></div>' +
     '<div class="stat"><div class="sv">0</div><div class="sl">Pending</div></div>' +
@@ -1611,6 +1645,22 @@ function buildDashEmpty() {
     + '<strong style="color:var(--w);display:block;margin-bottom:6px">No athletes on the roster yet</strong>'
     + 'Share your team code with athletes and their data will appear here once they complete the assessment.</div>';
   document.getElementById('coach-roster-rows').innerHTML = emptyMsg;
+  buildChartsEmpty();
+}
+
+function buildDashError(msg) {
+  document.getElementById('tc-bar').style.width = '0%';
+  document.getElementById('tc-progress').textContent = '—';
+  document.querySelector('.stats').innerHTML =
+    '<div class="stat"><div class="sv g">—</div><div class="sl">Complete</div></div>' +
+    '<div class="stat"><div class="sv">—</div><div class="sl">Pending</div></div>' +
+    '<div class="stat"><div class="sv g">—</div><div class="sl">Core Influencers</div></div>' +
+    '<div class="stat"><div class="sv r">—</div><div class="sl">Friction Flags</div></div>';
+  document.getElementById('coach-roster-rows').innerHTML =
+    '<div style="padding:32px;text-align:center;color:var(--mid);font-size:13px">'
+    + '<div style="font-size:28px;margin-bottom:12px">⚠️</div>'
+    + '<strong style="color:var(--rl);display:block;margin-bottom:6px">Error</strong>'
+    + msg + '</div>';
   buildChartsEmpty();
 }
 
