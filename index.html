@@ -2699,10 +2699,9 @@ function adminLogin() {
 function adminLogout() {
   localStorage.removeItem('rpm_admin_session');
   localStorage.removeItem('rpm_screen');
-  document.getElementById('s-admin').style.display = 'none';
-  document.getElementById('s-admin-login').style.display = 'flex';
   document.getElementById('adm-email').value = '';
   document.getElementById('adm-pass').value = '';
+  show('s-land');
 }
 
 // ── Load data ──────────────────────────────────────────────
@@ -3470,10 +3469,9 @@ function adminLogin() {
 function adminLogout() {
   localStorage.removeItem('rpm_admin_session');
   localStorage.removeItem('rpm_screen');
-  document.getElementById('s-admin').style.display = 'none';
-  document.getElementById('s-admin-login').style.display = 'flex';
   document.getElementById('adm-email').value = '';
   document.getElementById('adm-pass').value = '';
+  show('s-land');
 }
 
 // ── Normalise raw Supabase rows ────────────────────────────
