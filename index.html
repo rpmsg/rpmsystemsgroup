@@ -2687,9 +2687,8 @@ function adminLogin() {
   if (em === ADMIN_EMAIL && pw === ADMIN_PASS) {
     err.style.display = 'none';
     localStorage.setItem('rpm_admin_session', '1');
-    document.getElementById('s-admin-login').style.display = 'none';
-    document.getElementById('s-admin').style.display = 'flex';
     document.getElementById('adm-user-label').textContent = em;
+    show('s-admin');
     loadAllData();
   } else {
     err.style.display = 'block';
@@ -3457,9 +3456,8 @@ function adminLogin() {
   if (em === ADMIN_EMAIL && pw === ADMIN_PASS) {
     err.style.display = 'none';
     localStorage.setItem('rpm_admin_session', '1');
-    document.getElementById('s-admin-login').style.display = 'none';
-    document.getElementById('s-admin').style.display = 'flex';
     document.getElementById('adm-user-label').textContent = em;
+    show('s-admin');
     loadAllData();
   } else {
     err.style.display = 'block';
