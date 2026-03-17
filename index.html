@@ -2735,6 +2735,7 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="sidebar-section">Data</div>
       <div class="nav-item" onclick="showSection('resets',this)"><span class="ni">🔄</span>Submission Resets</div>
       <div class="nav-item" onclick="showSection('panic',this)"><span class="ni">🧠</span>Panic Cycles</div>
+      <div class="nav-item" onclick="showSection('social',this)"><span class="ni">🗺</span>Social Map</div>
       <div class="nav-item" onclick="showSection('export',this)"><span class="ni">⬇</span>Data Export</div>
     </div>
 
@@ -2867,6 +2868,23 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
 
       <!-- ── DATA EXPORT ── -->
+
+      <!-- ── SOCIAL MAP ── -->
+      <div class="section" id="sec-social">
+        <div class="page-hd-row">
+          <div class="page-hd">
+            <h1>Social Map</h1>
+            <p>Individual athlete social map responses — practitioner use only</p>
+          </div>
+        </div>
+        <div class="notice danger"><span class="notice-ico">🔒</span><p>Individual responses are confidential and must not be shared with coaching staff. For RPM practitioner use only.</p></div>
+        <div class="fld" style="max-width:280px;margin-bottom:18px">
+          <label>Filter by Team</label>
+          <select id="social-team-filter" onchange="filterSocialMap()"></select>
+        </div>
+        <div id="social-cards"></div>
+      </div>
+
       <div class="section" id="sec-export">
         <div class="page-hd">
           <h1>Data Export</h1>
@@ -3963,10 +3981,11 @@ function supa(path, method, body) {
 }
 
 // ── State ──────────────────────────────────────────────────
-var TEAMS   = [];
-var ROSTER  = [];
-var COACHES = [];
-var PANIC   = [];
+var TEAMS      = [];
+var ROSTER     = [];
+var COACHES    = [];
+var PANIC      = [];
+var SOCIAL_MAP = [];
 var pendingResetId   = null;
 var pendingResetName = '';
 var csvParsedNames   = [];
@@ -4055,12 +4074,14 @@ function loadAllData() {
     supa('teams?select=*&order=created_at.desc'),
     supa('roster?select=*&order=full_name'),
     supa('coaches?select=*&order=full_name'),
-    supa('panic_cycle_responses?select=*&order=created_at.desc')
+    supa('panic_cycle_responses?select=*&order=created_at.desc'),
+    supa('social_map_responses?select=*&order=athlete_id,question_number')
   ]).then(function(results) {
     var rawTeams2   = (results[0] && Array.isArray(results[0])) ? results[0] : [];
     var rawRoster2  = (results[1] && Array.isArray(results[1])) ? results[1] : [];
     var rawCoaches2 = (results[2] && Array.isArray(results[2])) ? results[2] : [];
     var rawPanic    = (results[3] && Array.isArray(results[3])) ? results[3] : [];
+    var rawSocial   = (results[4] && Array.isArray(results[4])) ? results[4] : [];
     TEAMS   = rawTeams2.map(normaliseTeam);
     ROSTER  = rawRoster2.map(function(r) {
       var norm = normaliseRoster(r);
@@ -4095,6 +4116,27 @@ function loadAllData() {
         pattern:  p.q9_pattern_sentence || ''
       };
     });
+    // Build SOCIAL_MAP: group rows by athlete_id, resolving name from ROSTER
+    var smByAthlete = {};
+    rawSocial.forEach(function(row) {
+      var key = row.athlete_id;
+      if (!smByAthlete[key]) {
+        var rosterRow = ROSTER.find(function(r){ return r.id === key; });
+        var teamRow   = TEAMS.find(function(t){ return t.id === row.team_id; });
+        smByAthlete[key] = {
+          athleteId: key,
+          athlete:   rosterRow ? rosterRow.name : key,
+          team:      row.team_id,
+          teamName:  teamRow ? teamRow.name : '',
+          questions: {}
+        };
+      }
+      smByAthlete[key].questions[row.question_number] = {
+        n1: row.nominee_1 || '',
+        n2: row.nominee_2 || ''
+      };
+    });
+    SOCIAL_MAP = Object.values(smByAthlete);
     // Compute athletes/complete counts from ROSTER (not stored on teams table)
     TEAMS.forEach(function(t) {
       var tr = ROSTER.filter(function(r){ return r.team === t.id; });
@@ -4104,10 +4146,11 @@ function loadAllData() {
     renderAll();
   }).catch(function(err) {
     console.error('loadAllData error:', err);
-    TEAMS   = [];
-    ROSTER  = [];
-    COACHES = [];
-    PANIC   = [];
+    TEAMS      = [];
+    ROSTER     = [];
+    COACHES    = [];
+    PANIC      = [];
+    SOCIAL_MAP = [];
     renderAll();
   });
 }
@@ -4120,6 +4163,7 @@ function renderAll() {
   renderCoaches();
   renderResets();
   renderPanic();
+  renderSocialMap();
   populateTeamSelects();
 }
 
@@ -4311,6 +4355,59 @@ function renderPanic(filterTeam) {
 
 function filterPanic() {
   renderPanic(document.getElementById('panic-team-filter').value);
+}
+
+
+// ── Social Map ─────────────────────────────────────────────
+var SM_QUESTIONS = [
+  {n:1,  cat:"Trust",               positive:true,  q:"Who do you trust most to be honest and straightforward with you?"},
+  {n:2,  cat:"Communication",       positive:true,  q:"Who communicates in a way that helps you perform better or stay calm under pressure?"},
+  {n:3,  cat:"Safety",              positive:true,  q:"Who do you feel most comfortable approaching when stressed or frustrated?"},
+  {n:4,  cat:"Influence",           positive:true,  q:"Whose attitude positively influences the team most?"},
+  {n:5,  cat:"Effectiveness",       positive:true,  q:"Who do you work most effectively with during practices or games?"},
+  {n:6,  cat:"Decision Trust",      positive:true,  q:"Who do you trust to make good decisions in tough moments?"},
+  {n:7,  cat:"Understanding",       positive:true,  q:"Who do you feel gets you on and off the field?"},
+  {n:8,  cat:"Most Interaction",    positive:true,  q:"Who do you interact with most during training, travel, and meetings?"},
+  {n:9,  cat:"Positive Environment",positive:true,  q:"Who contributes most to a positive team environment?"},
+  {n:10, cat:"Least Connected",     positive:false, q:"Who do you feel the least connected to on the team?"},
+  {n:11, cat:"Least Interaction",   positive:false, q:"Who do you tend to interact with the least?"},
+  {n:12, cat:"Hard to Communicate", positive:false, q:"Who do you find it hardest to communicate with clearly or comfortably?"}
+];
+
+function renderSocialMap(filterTeam) {
+  var sel = document.getElementById("social-team-filter");
+  if (sel) {
+    var prev = filterTeam !== undefined ? filterTeam : sel.value;
+    sel.innerHTML = "<option value="">All Teams</option>";
+    TEAMS.forEach(function(t){ sel.innerHTML += "<option value="" + t.id + "">" + t.name + "</option>"; });
+    if (prev) sel.value = prev;
+  }
+  var items = filterTeam ? SOCIAL_MAP.filter(function(s){ return s.team === filterTeam; }) : SOCIAL_MAP;
+  items = items.slice().sort(function(a,b){ var al=a.athlete.split(" ").pop().toLowerCase(),bl=b.athlete.split(" ").pop().toLowerCase(); return al<bl?-1:al>bl?1:0; });
+  var h = "";
+  items.forEach(function(s) {
+    h += "<div class="pc-card">"
+       + "<div class="pc-card-hd"><span class="pc-card-name">" + s.athlete + "</span>"
+       + "<span style="font-size:10px;color:var(--mid);margin-left:8px">" + s.teamName + "</span>"
+       + "<span class="pill pill-g" style="margin-left:auto">Complete</span></div>"
+       + "<div style="margin-top:10px">";
+    SM_QUESTIONS.forEach(function(smq) {
+      var ans = s.questions[smq.n];
+      var nominees = ans ? [ans.n1, ans.n2].filter(Boolean).join(", ") : "";
+      var catColor = smq.positive ? "var(--gl)" : "#e09a52";
+      h += "<div style="display:grid;grid-template-columns:160px 1fr;gap:4px 12px;padding:6px 0;border-bottom:1px solid var(--bdr)">"
+         + "<div style="font-size:10px;font-weight:600;color:" + catColor + "">" + smq.cat + "</div>"
+         + "<div style="font-size:10px;color:var(--mid)">" + smq.q + "</div>"
+         + "<div style="grid-column:2;font-size:12px;color:var(--w);padding:2px 0">" + (nominees || "<span style="color:var(--mid)">No selection</span>") + "</div>"
+         + "</div>";
+    });
+    h += "</div></div>";
+  });
+  document.getElementById("social-cards").innerHTML = h || "<div style="color:var(--mid);font-size:12px;padding:20px 0">No social map responses found.</div>";
+}
+
+function filterSocialMap() {
+  renderSocialMap(document.getElementById("social-team-filter").value);
 }
 
 // ── Team selects population ────────────────────────────────
@@ -4794,7 +4891,7 @@ window.createTeam=createTeam; window.editTeam=editTeam; window.saveTeam=saveTeam
 window.addPlayer=addPlayer; window.editPlayer=editPlayer; window.savePlayer=savePlayer;
 window.addCoach=addCoach; window.deleteCoach=deleteCoach; window.editCoach=editCoach; window.saveCoach=saveCoach;
 window.promptReset=promptReset;
-window.filterRoster=filterRoster; window.filterResets=filterResets; window.filterPanic=filterPanic;
+window.filterRoster=filterRoster; window.filterResets=filterResets; window.filterPanic=filterPanic; window.filterSocialMap=filterSocialMap;
 window.showQR=showQR; window.downloadQR=downloadQR; window.copyQRLink=copyQRLink;
 window.exportCSV=exportCSV; window.generatePanicPDF=generatePanicPDF;
 
