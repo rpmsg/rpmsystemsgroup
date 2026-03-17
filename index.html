@@ -2947,13 +2947,13 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="modal-body">
       <div class="fld"><label>Team</label><select id="csv-team"></select></div>
       <div class="notice info" style="margin-bottom:14px"><span class="notice-ico">ℹ</span><p>One athlete name per row. Header row is optional — works with exports from Excel, Google Sheets, or any roster system.</p></div>
-      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('csv-file').click()">
+      <div class="upload-zone" id="upload-zone" style="position:relative">
         <div class="uz-ico">📂</div>
         <strong style="font-size:13px">Click to select CSV</strong>
         <p>or drag and drop here</p>
         <p id="csv-filename" style="color:var(--gl);margin-top:6px"></p>
+        <input type="file" id="csv-file" accept=".csv" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer" onchange="handleCSV(this)">
       </div>
-      <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="handleCSV(this)">
       <div id="csv-preview" style="display:none">
         <div style="font-size:11px;color:var(--mid);margin-bottom:8px" id="csv-count"></div>
         <div id="csv-names" style="max-height:140px;overflow-y:auto;background:var(--d3);border-radius:7px;padding:10px;font-size:11px;color:var(--mid);line-height:1.8"></div>
@@ -4724,7 +4724,7 @@ document.addEventListener('DOMContentLoaded', function(){
   zone.addEventListener('drop', function(e){
     e.preventDefault(); zone.classList.remove('drag');
     var file = e.dataTransfer.files[0];
-    if (file) { var inp = document.getElementById('csv-file'); inp.files = e.dataTransfer.files; handleCSV(inp); }
+    if (file) { var inp = document.getElementById('csv-file'); inp.files = e.dataTransfer.files; window.handleCSV(inp); }
   });
   // Close modals on overlay click
   document.querySelectorAll('.modal-overlay').forEach(function(m){
