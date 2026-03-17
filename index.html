@@ -182,6 +182,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 2
 .modal-foot p{font-size:11px;color:var(--mid)}
 .modal-dl-progress{display:none;align-items:center;gap:10px;font-size:12px;color:var(--gl)}
 .modal-dl-progress.on{display:flex}
+@keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:600px){.modal-charts{grid-template-columns:1fr}.modal-chart-card.full{grid-column:1}}
 
 @media(max-width:700px){
@@ -844,7 +845,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
     <div class="ntag">Coach Dashboard</div>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="btn bp bsm" data-action="openModal" id="btn-gen-report">📊 Generate Pulse Report</button>
-      <button class="btn bo bsm" onclick="localStorage.removeItem('rpm_coach_team');localStorage.removeItem('rpm_screen');show('s-land')">← Sign Out</button>
+      <button class="btn bo bsm" onclick="localStorage.removeItem('rpm_coach_team');localStorage.removeItem('rpm_screen');localStorage.removeItem('rpm_coach_name');show('s-land')">← Sign Out</button>
     </div>
   </nav>
   <div class="dl">
@@ -924,7 +925,7 @@ function supa(path, method, body) {
       'Prefer': method === 'POST' ? 'return=representation' : ''
     },
     body: body ? JSON.stringify(body) : undefined
-  }).then(function(r) { return r.json(); });
+  }).then(function(r){ return r.status === 204 ? {} : r.json(); });
 }
 
 // ── App state ──────────────────────────────────────────────
@@ -946,10 +947,6 @@ var ROLES_DEMO = {'Sofia Reyes':'inf','Jordan Mitchell':'inf','Camille Dubois':'
 var DONE_DEMO = ['Sofia Reyes','Jordan Mitchell','Camille Dubois','Priya Sharma','Alexis Carter','Nadia Okonkwo','Taylor Brooks','Ingrid Larsen','Mia Fontaine','Destiny Williams','Kezia Mwangi','Paige Henderson','Lucia Morales','Sasha Petrov','Amara Diallo','Riley Thompson','Brooklyn Hayes','Chloe Nakamura'];
 
 // ── Coach auth (handled via Supabase coaches table) ────────
-var CEMAIL = 'coach@senators.edu';
-var CPASS  = 'rpm2026';
-var DEMO_EMAIL = 'demo@rpmsystemsgroup.com';
-var DEMO_PASS  = 'Demo26';
 
 // ── UI helpers ─────────────────────────────────────────────
 var ADMIN_SCREENS = ['s-admin-login','s-admin'];
@@ -1322,15 +1319,7 @@ function coachLogin() {
   showErr('login-err', '');
   setLoading('btn-coach-login', true, 'Access Dashboard →');
 
-  // Demo login — shows fictional data, never touches real DB
-  if (em === DEMO_EMAIL && pw === DEMO_PASS) {
-    setLoading('btn-coach-login', false, 'Access Dashboard →');
-    show('s-dash');
-    buildDashDemo();
-    return;
-  }
-
-  // Real coach login — checks Supabase coaches table
+  // Coach login — checks Supabase coaches table
   supa('coaches?email=eq.' + encodeURIComponent(em) + '&select=id,full_name,team_id,password')
     .then(function(data) {
       if (!data || !data.length || data[0].password !== pw) {
@@ -1365,20 +1354,21 @@ function buildDash(teamId) {
       document.getElementById('dash-sub').textContent = 'Pulse Report · Code: ' + team.team_code;
       return Promise.all([
         supa('roster?team_id=eq.' + currentTeamId + '&select=full_name,status&order=full_name'),
-        supa('pulse_report_scores?team_id=eq.' + currentTeamId + '&select=athlete_name,positive_mentions,negative_mentions,social_role&order=positive_mentions.desc')
+        supa('pulse_report_scores?team_id=eq.' + currentTeamId + '&select=athlete_name,positive_mentions,negative_mentions,social_role&order=positive_mentions.desc'),
+        supa('panic_cycle_responses?team_id=eq.' + currentTeamId + '&select=q1_trigger,q7_reaction,q8_behavior,q11_aftermath')
       ]);
     })
     .then(function(results) {
       if (!results) return;
-      buildDashWithData(results[0], results[1]);
+      buildDashWithData(results[0], results[1], results[2]);
     })
     .catch(function() {
       buildDashDemo();
     });
 }
 
-function buildDashWithData(rosterData, scoresData) {
-  if (!rosterData || !rosterData.length) { buildDashDemo(); return; }
+function buildDashWithData(rosterData, scoresData, panicData) {
+  if (!rosterData || !rosterData.length) { buildDashEmpty(); return; }
   lastRosterData = rosterData || [];
   lastScoresData = scoresData  || [];
 
@@ -1429,7 +1419,7 @@ function buildDashWithData(rosterData, scoresData) {
   // Risk zones
   buildRiskGrid(scoresData);
   buildSuggestions(scoresData);
-  buildPanicProfile(PANIC_PROFILE_DEMO); // will be replaced with live Supabase pull
+  buildPanicProfileFromData(panicData || []);
 
   // Update stat tiles
   var complete = rosterData.filter(function(r){return r.status==='complete';}).length;
@@ -1522,6 +1512,62 @@ function buildChartsEmpty() {
   document.getElementById('pp-triggers').innerHTML = msg;
   document.getElementById('pp-behaviors').innerHTML = msg;
   document.getElementById('pp-insight').innerHTML = '';
+}
+
+function buildDashEmpty() {
+  // Real team exists but no athletes on roster yet
+  document.querySelector('.stats').innerHTML =
+    '<div class="stat"><div class="sv g">0</div><div class="sl">Complete</div></div>' +
+    '<div class="stat"><div class="sv">0</div><div class="sl">Pending</div></div>' +
+    '<div class="stat"><div class="sv g">—</div><div class="sl">Core Influencers</div></div>' +
+    '<div class="stat"><div class="sv r">—</div><div class="sl">Friction Flags</div></div>';
+  var emptyMsg = '<div style="padding:32px;text-align:center;color:var(--mid);font-size:13px">'
+    + '<div style="font-size:28px;margin-bottom:12px">👥</div>'
+    + '<strong style="color:var(--w);display:block;margin-bottom:6px">No athletes on the roster yet</strong>'
+    + 'Share your team code with athletes and their data will appear here once they complete the assessment.</div>';
+  document.getElementById('coach-roster-rows').innerHTML = emptyMsg;
+  buildChartsEmpty();
+}
+
+function buildPanicProfileFromData(panicRows) {
+  if (!panicRows || !panicRows.length) {
+    buildChartsEmpty();
+    return;
+  }
+  var total = panicRows.length;
+
+  function tally(field) {
+    var counts = {};
+    panicRows.forEach(function(r) {
+      var val = r[field];
+      if (val) counts[val] = (counts[val] || 0) + 1;
+    });
+    return Object.keys(counts)
+      .sort(function(a,b){ return counts[b]-counts[a]; })
+      .slice(0,5)
+      .map(function(k) {
+        var pct = Math.round((counts[k]/total)*100);
+        var color = pct >= 50 ? 'r' : pct >= 30 ? 'y' : 'b';
+        return {label: k, pct: pct, color: color};
+      });
+  }
+
+  var triggers   = tally('q1_trigger');
+  var behaviors  = tally('q8_behavior');
+  var aftermaths = tally('q11_aftermath');
+
+  // Build insights from the top results
+  var insights = [];
+  if (triggers[0])   insights.push({color:'r', text:'<strong>'+triggers[0].pct+'%</strong> of athletes trigger on: '+triggers[0].label});
+  if (behaviors[0])  insights.push({color:'r', text:'<strong>'+behaviors[0].pct+'%</strong> primary behavioral response: '+behaviors[0].label.toLowerCase()});
+  if (aftermaths[0]) insights.push({color:'b', text:'<strong>'+aftermaths[0].pct+'%</strong> aftermath pattern: '+aftermaths[0].label.toLowerCase()});
+  if (triggers[1])   insights.push({color:'y', text:'<strong>'+triggers[1].pct+'%</strong> secondary trigger: '+triggers[1].label.toLowerCase()});
+
+  buildPanicProfile({
+    triggers:  triggers,
+    behaviors: behaviors.concat(aftermaths).slice(0,6),
+    insights:  insights
+  });
 }
 
 function buildChartsDemo() {
@@ -2066,10 +2112,14 @@ function openModal() {
 
   document.getElementById('report-modal').classList.add('on');
   document.body.style.overflow = 'hidden';
+  document.getElementById('chart-loading').style.display = 'flex';
+  document.getElementById('modal-charts-wrap').style.opacity = '0';
 
   // Render after modal is visible so canvas dimensions are correct
   setTimeout(function() {
     renderReportCharts(roster, posArr, negArr, roles, teamLabel);
+    document.getElementById('chart-loading').style.display = 'none';
+    document.getElementById('modal-charts-wrap').style.opacity = '1';
   }, 80);
 
   // Reset download button state
@@ -2086,6 +2136,16 @@ function closeModal() {
   document.getElementById('report-modal').classList.remove('on');
   document.body.style.overflow = '';
 }
+
+function openPrivacyModal() {
+  document.getElementById('privacy-modal').classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+function closePrivacyModal() {
+  document.getElementById('privacy-modal').classList.remove('on');
+  document.body.style.overflow = '';
+}
+window.closePrivacyModal = closePrivacyModal;
 
 // ── PDF generation (browser print) ──────────────────────────
 function buildPDFContent(teamLabel, data) {
@@ -2233,19 +2293,17 @@ function downloadReport() {
 
 // ── Coach roster export ────────────────────────────────────
 function exportCoachRoster() {
-  var rows = 'athlete_name,status,social_role,friction
-';
-  document.querySelectorAll('#coach-roster-rows .rtr').forEach(function(row) {
-    var cells = row.querySelectorAll("div");
-    var name   = cells[0] ? cells[0].textContent.trim() : '';
-    var status = cells[1] ? cells[1].textContent.trim() : '';
-    var role   = cells[2] ? cells[2].textContent.trim() : '';
-    var fric   = cells[3] ? cells[3].textContent.trim() : '';
-    rows += '"'+name+'",'+'"'+status+'",'+'"'+role+'",'+'"'+fric+'"'+'
-';
+  if (!lastRosterData.length) { alert('No roster data to export.'); return; }
+  var roleMap = {'Core Influencer':'Core Influencer','Rejection Risk':'Rejection Risk','Isolation Risk':'Isolation Risk','Polarizing Figure':'Polarizing Figure'};
+  var rows = 'athlete_name,status,social_role,friction_score\n';
+  lastRosterData.forEach(function(r) {
+    var score = lastScoresData.find(function(s){ return s.athlete_name === r.full_name; });
+    var role  = score ? (roleMap[score.social_role] || '—') : '—';
+    var fric  = score ? score.negative_mentions : 0;
+    rows += '"'+r.full_name+'","'+(r.status==='complete'?'Complete':'Pending')+'","'+role+'",'+fric+'\n';
   });
   var blob = new Blob([rows], {type:'text/csv'});
-  var a = document.createElement("a");
+  var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'Roster_' + new Date().toISOString().slice(0,10) + '.csv';
   a.click();
@@ -2263,7 +2321,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if      (a === 'show')               show(t);
     else if (a === 'valCode')            valCode();
     else if (a === 'proceedFromConsent') proceedFromConsent();
-    else if (a === 'openPrivacy')        window.open('privacy.html','_blank');
+    else if (a === 'openPrivacy')        openPrivacyModal();
     else if (a === 'startPC')            startPC();
     else if (a === 'donePC')             donePC();
     else if (a === 'startSM')            startSM();
@@ -2297,6 +2355,38 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 </script>
 
+<!-- PRIVACY POLICY MODAL -->
+<div class="modal-overlay" id="privacy-modal" onclick="if(event.target===this)closePrivacyModal()">
+  <div class="modal" style="max-width:620px;max-height:85vh">
+    <div class="modal-head">
+      <div><h3>Privacy Policy</h3><p>RPM Systems Group · Effective March 2026</p></div>
+      <button class="modal-close" onclick="closePrivacyModal()">✕</button>
+    </div>
+    <div class="modal-body" style="font-size:13px;line-height:1.7;color:var(--mid)">
+      <p style="color:var(--w);font-weight:600;margin-bottom:12px">Your privacy is central to how this platform works. Please read this carefully before completing your assessment.</p>
+
+      <p style="color:var(--gl);font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">What we collect</p>
+      <p style="margin-bottom:16px">When you complete the assessment, we collect your full name, team affiliation, your Panic Cycle responses (11 questions about your psychological response to pressure), and your Social Map responses (12 questions about your team relationships).</p>
+
+      <p style="color:var(--gl);font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Who sees your data</p>
+      <p style="margin-bottom:8px"><strong style="color:var(--w)">Panic Cycle responses</strong> — viewed only by your assigned RPM practitioner. Your coaches cannot see individual Panic Cycle answers. Ever.</p>
+      <p style="margin-bottom:16px"><strong style="color:var(--w)">Social Map responses</strong> — aggregated anonymously before being presented to coaches. Individual nominations are never shown. Coaches see role classifications and team-level patterns only.</p>
+
+      <p style="color:var(--gl);font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Data storage &amp; retention</p>
+      <p style="margin-bottom:16px">Your data is stored securely via Supabase (SOC 2 compliant). All data is permanently deleted two years after your program season ends, or sooner upon request.</p>
+
+      <p style="color:var(--gl);font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Your rights</p>
+      <p style="margin-bottom:16px">You may request a copy of your data, correction of any inaccuracies, or complete deletion at any time by contacting your RPM practitioner or emailing <strong style="color:var(--w)">privacy@rpmsystemsgroup.com</strong>.</p>
+
+      <p style="color:var(--gl);font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Consent</p>
+      <p>By checking the consent box, you confirm you have read and understood this policy and agree to your data being collected and used as described above. Participation is voluntary.</p>
+    </div>
+    <div class="modal-foot" style="justify-content:flex-end">
+      <button class="btn bp bsm" onclick="closePrivacyModal()">I Understand →</button>
+    </div>
+  </div>
+</div>
+
 <!-- REPORT MODAL -->
 <div class="modal-overlay" id="report-modal">
   <div class="modal">
@@ -2308,6 +2398,11 @@ document.addEventListener('DOMContentLoaded', function() {
       <button class="modal-close" data-action="closeModal">✕</button>
     </div>
     <div class="modal-body">
+      <div id="chart-loading" style="display:none;align-items:center;justify-content:center;padding:48px;gap:12px;color:var(--mid);font-size:13px">
+        <div style="width:18px;height:18px;border:2px solid var(--d4);border-top-color:var(--gl);border-radius:50%;animation:spin .7s linear infinite"></div>
+        Generating charts…
+      </div>
+      <div id="modal-charts-wrap" style="transition:opacity .2s">
       <div class="modal-charts">
         <div class="modal-chart-card full">
           <div class="modal-chart-label">Chart 1 — Team Connectivity Map</div>
@@ -2322,6 +2417,7 @@ document.addEventListener('DOMContentLoaded', function() {
           <canvas id="rc-scatter" style="width:100%;display:block;background:#fff"></canvas>
         </div>
       </div>
+      </div><!-- end modal-charts-wrap -->
       <div class="modal-doc-row">
         <div class="modal-doc-ico">📄</div>
         <div class="modal-doc-info">
