@@ -839,7 +839,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
     <div class="ntag">Coach Dashboard</div>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="btn bp bsm" data-action="openModal" id="btn-gen-report">📊 Generate Pulse Report</button>
-      <button class="btn bo bsm" onclick="localStorage.removeItem('rpm_coach_team');show('s-land')">← Sign Out</button>
+      <button class="btn bo bsm" onclick="localStorage.removeItem('rpm_coach_team');localStorage.removeItem('rpm_screen');show('s-land')">← Sign Out</button>
     </div>
   </nav>
   <div class="dl">
@@ -962,9 +962,14 @@ function show(id) {
   } else {
     target.classList.add('on');
   }
+  // Persist current screen (skip mid-assessment and confirmation screens)
+  var noSave = ['s-intake','s-confirm','s-consent'];
+  if (noSave.indexOf(id) === -1) { localStorage.setItem('rpm_screen', id); }
+  else { localStorage.removeItem('rpm_screen'); }
   window.scrollTo(0,0);
 }
 window.show = show;
+window.buildDash = buildDash;
 
 function showB(id) {
   document.querySelectorAll('.qb,.brk').forEach(function(b) { b.classList.remove('on'); });
@@ -2693,6 +2698,7 @@ function adminLogin() {
 
 function adminLogout() {
   localStorage.removeItem('rpm_admin_session');
+  localStorage.removeItem('rpm_screen');
   document.getElementById('s-admin').style.display = 'none';
   document.getElementById('s-admin-login').style.display = 'flex';
   document.getElementById('adm-email').value = '';
@@ -3376,13 +3382,18 @@ document.addEventListener('DOMContentLoaded', function(){
   // Enter key on login
   document.getElementById('adm-pass').addEventListener('keydown', function(e){ if(e.key==='Enter') adminLogin(); });
   // Restore sessions on refresh
-  if (localStorage.getItem('rpm_admin_session')) {
+  var lastScreen = localStorage.getItem('rpm_screen');
+  var coachTeam  = localStorage.getItem('rpm_coach_team');
+  if (localStorage.getItem('rpm_admin_session') && lastScreen === 's-admin') {
     show('s-admin');
     document.getElementById('adm-user-label').textContent = 'Admin';
     loadAllData();
+  } else if (coachTeam && lastScreen === 's-dash') {
+    show('s-dash');
+    window.buildDash(coachTeam);
+  } else if (lastScreen && lastScreen !== 's-land') {
+    show(lastScreen);
   }
-  var coachTeam = localStorage.getItem('rpm_coach_team');
-  if (coachTeam) { show('s-dash'); buildDash(coachTeam); }
 });
 
 // Expose functions used in onclick attributes
@@ -3458,6 +3469,7 @@ function adminLogin() {
 
 function adminLogout() {
   localStorage.removeItem('rpm_admin_session');
+  localStorage.removeItem('rpm_screen');
   document.getElementById('s-admin').style.display = 'none';
   document.getElementById('s-admin-login').style.display = 'flex';
   document.getElementById('adm-email').value = '';
