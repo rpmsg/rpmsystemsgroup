@@ -3377,8 +3377,7 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('adm-pass').addEventListener('keydown', function(e){ if(e.key==='Enter') adminLogin(); });
   // Restore sessions on refresh
   if (localStorage.getItem('rpm_admin_session')) {
-    document.getElementById('s-admin-login').style.display = 'none';
-    document.getElementById('s-admin').style.display = 'flex';
+    show('s-admin');
     document.getElementById('adm-user-label').textContent = 'Admin';
     loadAllData();
   }
