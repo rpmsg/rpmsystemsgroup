@@ -3597,14 +3597,21 @@ function handleCSV(input) {
       document.getElementById('csv-err').style.display = 'block';
       return;
     }
-    // Detect header row — common name column headers
-    var nameHeaders = ['full_name','name','athlete','athlete name','player','player name','fullname'];
-    var firstRow = lines[0].toLowerCase().replace(/[^a-z_ ]/g,'').trim();
-    var hasHeader = nameHeaders.some(function(h){ return firstRow === h; });
-    // Also treat as header if first row has no spaces and is all letters/underscores
-    if (!hasHeader && /^[a-z_]+$/.test(firstRow)) hasHeader = true;
+    // Detect header row — check first column header only
+    var nameHeaders = ['full_name','name','athlete','athlete name','player','player name','fullname','first name','first_name','player first name'];
+    var lastNameHeaders = ['last name','last_name','player last name','lastname','surname'];
+    var firstColHeader = lines[0].split(',')[0].toLowerCase().replace(/[^a-z_ ]/g,'').trim();
+    var secondColHeader = lines[0].split(',')[1] ? lines[0].split(',')[1].toLowerCase().replace(/[^a-z_ ]/g,'').trim() : '';
+    var hasHeader = nameHeaders.some(function(h){ return firstColHeader === h; });
+    if (!hasHeader && /^[a-z_]+$/.test(firstColHeader)) hasHeader = true;
+    var twoColName = hasHeader && lastNameHeaders.some(function(h){ return secondColHeader === h; });
     csvParsedNames = (hasHeader ? lines.slice(1) : lines)
-      .map(function(l){ return window.toTitleCase(l.split(',')[0].trim()); })
+      .map(function(l){
+        var cols = l.split(',');
+        var first = cols[0] ? cols[0].trim() : '';
+        var last = (twoColName && cols[1]) ? cols[1].trim() : '';
+        return window.toTitleCase(last ? first + ' ' + last : first);
+      })
       .filter(Boolean);
     if (!csvParsedNames.length) {
       document.getElementById('csv-err').textContent = 'No athlete names found in file.';
@@ -3633,15 +3640,13 @@ function submitCSV() {
   function insertChunk(idx) {
     if (idx >= rows.length) {
       btn.textContent='Upload Roster'; btn.style.opacity=''; btn.style.pointerEvents='';
-      var teamObj = TEAMS.find(function(t){ return t.id===team; });
-      rows.forEach(function(r,i){ ROSTER.push({id:'csv_'+Date.now()+'_'+i, name:r.full_name, team:team, teamName:teamObj?teamObj.name:'', status:'pending', date:'—'}); });
-      renderRoster(); renderOverview();
       suc.textContent = csvParsedNames.length + ' athletes uploaded successfully.';
       suc.style.display = 'block';
       setTimeout(function(){ closeModal('modal-csv'); suc.style.display='none';
         document.getElementById('csv-preview').style.display='none';
         document.getElementById('csv-filename').textContent='';
         csvParsedNames=[];
+        window.loadAllData();
       }, 2000);
       return;
     }
@@ -4139,8 +4144,10 @@ function renderTeams() {
 function renderRoster(filterTeam) {
   var sel = document.getElementById('roster-team-filter');
   if (sel) {
+    var prev = filterTeam !== undefined ? filterTeam : sel.value;
     sel.innerHTML = '<option value="">All Teams</option>';
     TEAMS.forEach(function(t){ sel.innerHTML += '<option value="' + t.id + '">' + t.name + '</option>'; });
+    if (prev) sel.value = prev;
   }
   var rows = filterTeam ? ROSTER.filter(function(r){ return r.team === filterTeam; }) : ROSTER;
   var h = '';
@@ -4428,14 +4435,21 @@ function handleCSV(input) {
       document.getElementById('csv-err').style.display = 'block';
       return;
     }
-    // Detect header row — common name column headers
-    var nameHeaders = ['full_name','name','athlete','athlete name','player','player name','fullname'];
-    var firstRow = lines[0].toLowerCase().replace(/[^a-z_ ]/g,'').trim();
-    var hasHeader = nameHeaders.some(function(h){ return firstRow === h; });
-    // Also treat as header if first row has no spaces and is all letters/underscores
-    if (!hasHeader && /^[a-z_]+$/.test(firstRow)) hasHeader = true;
+    // Detect header row — check first column header only
+    var nameHeaders = ['full_name','name','athlete','athlete name','player','player name','fullname','first name','first_name','player first name'];
+    var lastNameHeaders = ['last name','last_name','player last name','lastname','surname'];
+    var firstColHeader = lines[0].split(',')[0].toLowerCase().replace(/[^a-z_ ]/g,'').trim();
+    var secondColHeader = lines[0].split(',')[1] ? lines[0].split(',')[1].toLowerCase().replace(/[^a-z_ ]/g,'').trim() : '';
+    var hasHeader = nameHeaders.some(function(h){ return firstColHeader === h; });
+    if (!hasHeader && /^[a-z_]+$/.test(firstColHeader)) hasHeader = true;
+    var twoColName = hasHeader && lastNameHeaders.some(function(h){ return secondColHeader === h; });
     csvParsedNames = (hasHeader ? lines.slice(1) : lines)
-      .map(function(l){ return window.toTitleCase(l.split(',')[0].trim()); })
+      .map(function(l){
+        var cols = l.split(',');
+        var first = cols[0] ? cols[0].trim() : '';
+        var last = (twoColName && cols[1]) ? cols[1].trim() : '';
+        return window.toTitleCase(last ? first + ' ' + last : first);
+      })
       .filter(Boolean);
     if (!csvParsedNames.length) {
       document.getElementById('csv-err').textContent = 'No athlete names found in file.';
