@@ -993,9 +993,13 @@ function showErr(id, msg) {
 }
 
 // ── Step 1: Validate team code ─────────────────────────────
+function toTitleCase(str) {
+  return str.replace(/\w\S*/g, function(w){ return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); });
+}
+
 function valCode() {
   var code = document.getElementById('inp-code').value.trim().toUpperCase();
-  var name = document.getElementById('inp-name').value.trim();
+  var name = toTitleCase(document.getElementById('inp-name').value.trim());
   showErr('code-err', '');
   if (!code || !name) { showErr('code-err', 'Please enter both your team code and full name.'); return; }
 
@@ -1014,7 +1018,7 @@ function valCode() {
       aName    = name;
 
       // Check if athlete is on the roster — auto-create if not found
-      return supa('roster?team_id=eq.' + teamId + '&full_name=eq.' + encodeURIComponent(name) + '&select=id,status');
+      return supa('roster?team_id=eq.' + teamId + '&full_name=ilike.' + encodeURIComponent(name) + '&select=id,status');
     })
     .then(function(data) {
       if (!data) return;
@@ -1084,7 +1088,7 @@ function renderRosters() {
     var neg = q >= 10;
     var h = '';
     ROSTER.forEach(function(nm) {
-      if (nm === aName) return;
+      if (nm.toLowerCase() === aName.toLowerCase()) return;
       var pts = nm.split(' ');
       var ini = pts[0].charAt(0) + (pts[1] ? pts[1].charAt(0) : '');
       h += '<div class="ri" data-action="selR" data-neg="' + neg + '"><div class="av">' + ini.toUpperCase() + '</div>' + nm + '</div>';
