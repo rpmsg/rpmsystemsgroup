@@ -2698,6 +2698,7 @@ function adminLogin() {
 function adminLogout() {
   localStorage.removeItem('rpm_admin_session');
   localStorage.removeItem('rpm_screen');
+  localStorage.removeItem('rpm_admin_section');
   document.getElementById('adm-email').value = '';
   document.getElementById('adm-pass').value = '';
   show('s-land');
@@ -2801,6 +2802,16 @@ function showSection(id, el) {
   document.getElementById('sec-' + id).classList.add('on');
   document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
   if (el) el.classList.add('active');
+  localStorage.setItem("rpm_admin_section", id);
+}
+
+function restoreAdminSection() {
+  var sec = localStorage.getItem('rpm_admin_section') || 'overview';
+  var navItem = null;
+  document.querySelectorAll('.nav-item').forEach(function(n) {
+    if ((n.getAttribute('onclick') || '').indexOf("'" + sec + "'") !== -1) navItem = n;
+  });
+  showSection(sec, navItem);
 }
 
 // ── Overview ───────────────────────────────────────────────
@@ -3386,6 +3397,7 @@ document.addEventListener('DOMContentLoaded', function(){
     show('s-admin');
     document.getElementById('adm-user-label').textContent = 'Admin';
     loadAllData();
+    restoreAdminSection();
   } else if (coachTeam && lastScreen === 's-dash') {
     show('s-dash');
     window.buildDash(coachTeam);
@@ -3467,6 +3479,7 @@ function adminLogin() {
 function adminLogout() {
   localStorage.removeItem('rpm_admin_session');
   localStorage.removeItem('rpm_screen');
+  localStorage.removeItem('rpm_admin_section');
   document.getElementById('adm-email').value = '';
   document.getElementById('adm-pass').value = '';
   show('s-land');
