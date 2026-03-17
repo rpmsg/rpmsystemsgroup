@@ -416,6 +416,9 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
   </nav>
   <div class="cw">
     <div class="box" style="max-width:520px">
+      <div style="background:rgba(29,143,90,.12);border:1px solid rgba(29,143,90,.3);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px">
+        ✓ Joined as <strong id="consent-name">—</strong> &nbsp;·&nbsp; Team: <strong id="consent-team">—</strong>
+      </div>
       <div class="tag">Confidentiality &amp; Consent</div>
       <h2>Before You Begin</h2>
       <p>Please read the following carefully before starting your assessment.</p>
@@ -1036,6 +1039,8 @@ function valCode() {
             }
             athleteId = created[0].id;
             setLoading('btn-valcode', false, 'Begin Assessment →');
+            document.getElementById('consent-name').textContent = name;
+            document.getElementById('consent-team').textContent = teamName;
             show('s-consent');
           });
       }
@@ -1047,6 +1052,8 @@ function valCode() {
       }
       athleteId = athlete.id;
       setLoading('btn-valcode', false, 'Begin Assessment →');
+      document.getElementById('consent-name').textContent = name;
+      document.getElementById('consent-team').textContent = teamName;
       show('s-consent');
     })
     .catch(function(err) {
