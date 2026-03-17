@@ -3142,7 +3142,7 @@ function addCoach() {
   var suc   = document.getElementById('ac-suc');
   if (!first||!last||!email||!team||!pass){ err.textContent='All fields required.'; err.style.display='block'; return; }
   err.style.display = 'none';
-  supa('coaches', 'POST', {full_name:first+' '+last, email:email, password:pass, team_id:team, status:'active'})
+  supa('coaches', 'POST', {full_name:first+' '+last, email:email, team_id:team, status:'active'})
     .then(function(data) {
       if (!data || data.code || data.error) {
         err.textContent = (data && (data.message||data.error)) || 'Failed to create coach login.';
@@ -3808,7 +3808,7 @@ function addCoach() {
   var suc   = document.getElementById('ac-suc');
   if (!first||!last||!email||!team||!pass){ err.textContent='All fields required.'; err.style.display='block'; return; }
   err.style.display = 'none';
-  supa('coaches', 'POST', {full_name:first+' '+last, email:email, password:pass, team_id:team, status:'active'})
+  supa('coaches', 'POST', {full_name:first+' '+last, email:email, team_id:team, status:'active'})
     .then(function(data) {
       if (!data || data.code || data.error) { err.textContent=(data&&(data.message||data.error))||'Failed to create coach.'; err.style.display='block'; return; }
       var created = Array.isArray(data) ? data[0] : data;
