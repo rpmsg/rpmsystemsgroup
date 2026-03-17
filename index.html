@@ -351,7 +351,6 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
   .fld-row{grid-template-columns:1fr}
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -2628,7 +2627,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
     <div class="modal-body">
       <div class="qr-wrap">
-        <div class="qr-box"><canvas id="qr-canvas" width="200" height="200"></canvas></div>
+        <div class="qr-box"><img id="qr-canvas" width="200" height="200" alt="QR Code"></div>
         <div class="qr-link" id="qr-url-display"></div>
         <div class="qr-actions">
           <button class="btn bp bsm" onclick="downloadQR()">⬇ Download PNG</button>
@@ -3270,17 +3269,15 @@ function showQR(code, teamName) {
 }
 
 function drawQR(text) {
-  var canvas = document.getElementById('qr-canvas');
-  QRCode.toCanvas(canvas, text, { width: 200, margin: 2, color: { dark: '#111111', light: '#ffffff' } }, function(err) {
-    if (err) console.error('QR generation failed:', err);
-  });
+  var img = document.getElementById('qr-canvas');
+  img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=' + encodeURIComponent(text);
 }
 
 function downloadQR() {
-  var canvas = document.getElementById('qr-canvas');
   var a = document.createElement('a');
-  a.href = canvas.toDataURL('image/png');
+  a.href = document.getElementById('qr-canvas').src;
   a.download = currentQRTeam.replace(/\s+/g,'_') + '_QR.png';
+  a.target = '_blank';
   a.click();
 }
 
@@ -3937,17 +3934,15 @@ function showQR(code, teamName) {
 }
 
 function drawQR(text) {
-  var canvas = document.getElementById('qr-canvas');
-  QRCode.toCanvas(canvas, text, { width: 200, margin: 2, color: { dark: '#111111', light: '#ffffff' } }, function(err) {
-    if (err) console.error('QR generation failed:', err);
-  });
+  var img = document.getElementById('qr-canvas');
+  img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=' + encodeURIComponent(text);
 }
 
 function downloadQR() {
-  var canvas = document.getElementById('qr-canvas');
   var a = document.createElement('a');
-  a.href = canvas.toDataURL('image/png');
+  a.href = document.getElementById('qr-canvas').src;
   a.download = currentQRTeam.replace(/\s+/g,'_') + '_QR.png';
+  a.target = '_blank';
   a.click();
 }
 
