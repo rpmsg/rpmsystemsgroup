@@ -3555,6 +3555,7 @@ function showSection(id, el) {
   document.getElementById('sec-' + id).classList.add('on');
   document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
   if (el) el.classList.add('active');
+  localStorage.setItem("rpm_admin_section", id);
 }
 
 // ── Overview ───────────────────────────────────────────────
