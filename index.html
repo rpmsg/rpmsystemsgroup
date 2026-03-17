@@ -430,12 +430,33 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
     <div class="box">
       <div class="tag">Step 1 of 2</div>
       <h2>Enter Your Team Code</h2>
-      <p>Your coach provided a team code. Enter it below with your name to begin your assessment.</p>
+      <p>Your coach provided a team code. Enter it below to find your name on the roster.</p>
       <p style="font-size:12px;color:var(--mid);margin-top:-8px">⏱ Takes 10–12 minutes. Must be completed in one sitting — do not close or refresh the page.</p>
       <div class="fld"><label>Team Code</label><input type="text" id="inp-code" placeholder="Enter your team code"></div>
-      <div class="fld"><label>Your Full Name</label><input type="text" id="inp-name" placeholder="First Last"></div>
       <div class="err" id="code-err">Invalid code. Check with your coach and try again.</div>
-      <button class="btn bp bfw" id="btn-valcode" data-action="valCode">Begin Assessment →</button>
+      <button class="btn bp bfw" id="btn-valcode" data-action="valCode">Find My Team →</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAME SELECT -->
+<div id="s-name" class="screen">
+  <nav>
+    <div class="logo">RPM<span>.</span>SG</div>
+    <div class="ntag">Athlete Intake</div>
+    <button class="btn bo bsm" data-action="show" data-target="s-code">← Back</button>
+  </nav>
+  <div class="cw" style="align-items:flex-start;padding-top:40px">
+    <div class="box" style="max-width:560px">
+      <div class="tag">Step 2 of 2</div>
+      <h2>Select Your Name</h2>
+      <p id="name-team-label">Find your name below and tap it to continue.</p>
+      <div id="name-roster-grid" class="rg" style="margin-top:16px"></div>
+      <div style="margin-top:14px;font-size:12px;color:var(--mid)" id="name-not-found-msg" style="display:none">
+        Don't see your name? Your coach needs to add you to the roster before you can begin.
+      </div>
+      <div class="err" id="name-err" style="margin-top:12px">Please select your name to continue.</div>
+      <button class="btn bp bfw" id="btn-selname" onclick="confirmName()" style="margin-top:16px;opacity:.4;pointer-events:none">This is me →</button>
     </div>
   </div>
 </div>
@@ -995,13 +1016,15 @@ function show(id) {
     target.classList.add('on');
   }
   // Persist current screen (skip mid-assessment and confirmation screens)
-  var noSave = ['s-intake','s-confirm','s-consent'];
+  var noSave = ['s-intake','s-confirm','s-consent','s-name'];
   if (noSave.indexOf(id) === -1) { localStorage.setItem('rpm_screen', id); }
   else { localStorage.removeItem('rpm_screen'); }
   window.scrollTo(0,0);
 }
 window.show = show;
 window.buildDash = buildDash;
+window.selectName = selectName;
+window.confirmName = confirmName;
 
 function showB(id) {
   document.querySelectorAll('.qb,.brk').forEach(function(b) { b.classList.remove('on'); });
@@ -1044,61 +1067,74 @@ window.toTitleCase = toTitleCase;
 
 function valCode() {
   var code = document.getElementById('inp-code').value.trim().toUpperCase();
-  var name = toTitleCase(document.getElementById('inp-name').value.trim());
   showErr('code-err', '');
-  if (!code || !name) { showErr('code-err', 'Please enter both your team code and full name.'); return; }
+  if (!code) { showErr('code-err', 'Please enter your team code.'); return; }
 
-  setLoading('btn-valcode', true, 'Begin Assessment →');
+  setLoading('btn-valcode', true, 'Find My Team →');
 
   supa('teams?team_code=eq.' + encodeURIComponent(code) + '&status=eq.active&select=id,name,team_code')
     .then(function(data) {
       if (!data || !data.length) {
         showErr('code-err', 'Team code not found. Check with your coach and try again.');
-        setLoading('btn-valcode', false, 'Begin Assessment →');
+        setLoading('btn-valcode', false, 'Find My Team →');
         return;
       }
       var team = data[0];
       teamId   = team.id;
       teamName = team.name;
-      aName    = name;
-
-      // Check if athlete is on the roster — auto-create if not found
-      return supa('roster?team_id=eq.' + teamId + '&full_name=ilike.' + encodeURIComponent(name) + '&select=id,status');
+      return supa('roster?team_id=eq.' + teamId + '&select=id,full_name,status&order=full_name');
     })
-    .then(function(data) {
-      if (!data) return;
-      if (!data.length) {
-        // Not on roster — create entry automatically
-        return supa('roster', 'POST', {team_id: teamId, full_name: name, status: 'pending'})
-          .then(function(created) {
-            if (!created || !created.length) {
-              showErr('code-err', 'Could not create your roster entry. Please try again.');
-              setLoading('btn-valcode', false, 'Begin Assessment →');
-              return;
-            }
-            athleteId = created[0].id;
-            setLoading('btn-valcode', false, 'Begin Assessment →');
-            document.getElementById('consent-name').textContent = name;
-            document.getElementById('consent-team').textContent = teamName;
-            show('s-consent');
-          });
+    .then(function(roster) {
+      if (!roster) return;
+      setLoading('btn-valcode', false, 'Find My Team →');
+      // Build selectable name grid
+      var grid = document.getElementById('name-roster-grid');
+      var notFound = document.getElementById('name-not-found-msg');
+      if (!roster.length) {
+        grid.innerHTML = '';
+        notFound.style.display = 'block';
+      } else {
+        notFound.style.display = 'none';
+        grid.innerHTML = roster.map(function(r) {
+          var disabled = r.status === 'complete'
+            ? ' style="opacity:.45;pointer-events:none" title="Already submitted"'
+            : '';
+          return '<div class="ri" onclick="selectName(\'' + r.id + '\',\'' + r.full_name.replace(/'/g,"\\'") + '\',' + (r.status==='complete') + ')"' + disabled + '>'
+               + '<div class="av">' + r.full_name.split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase() + '</div>'
+               + r.full_name
+               + (r.status === 'complete' ? ' <span style="font-size:10px;color:var(--gl);margin-left:4px">✓</span>' : '')
+               + '</div>';
+        }).join('');
       }
-      var athlete = data[0];
-      if (athlete.status === 'complete') {
-        showErr('code-err', 'You have already completed this assessment. See your RPM practitioner for your results.');
-        setLoading('btn-valcode', false, 'Begin Assessment →');
-        return;
-      }
-      athleteId = athlete.id;
-      setLoading('btn-valcode', false, 'Begin Assessment →');
-      document.getElementById('consent-name').textContent = name;
-      document.getElementById('consent-team').textContent = teamName;
-      show('s-consent');
+      document.getElementById('name-team-label').textContent = 'Team: ' + teamName + ' — tap your name below.';
+      document.getElementById('name-err').style.display = 'none';
+      document.getElementById('btn-selname').style.opacity = '.4';
+      document.getElementById('btn-selname').style.pointerEvents = 'none';
+      show('s-name');
     })
-    .catch(function(err) {
+    .catch(function() {
       showErr('code-err', 'Connection error. Please try again.');
-      setLoading('btn-valcode', false, 'Begin Assessment →');
+      setLoading('btn-valcode', false, 'Find My Team →');
     });
+}
+
+function selectName(id, name, alreadyDone) {
+  if (alreadyDone) return;
+  // Deselect all, select tapped
+  document.querySelectorAll('#name-roster-grid .ri').forEach(function(el) { el.classList.remove('sel'); });
+  event.currentTarget.classList.add('sel');
+  athleteId = id;
+  aName     = name;
+  document.getElementById('name-err').style.display = 'none';
+  document.getElementById('btn-selname').style.opacity = '1';
+  document.getElementById('btn-selname').style.pointerEvents = 'auto';
+}
+
+function confirmName() {
+  if (!athleteId) { document.getElementById('name-err').style.display = 'block'; return; }
+  document.getElementById('consent-name').textContent = aName;
+  document.getElementById('consent-team').textContent = teamName;
+  show('s-consent');
 }
 
 // ── Consent screen ─────────────────────────────────────────
