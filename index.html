@@ -3654,6 +3654,8 @@ function resetCoachPass(id) {
   supa('coaches?id=eq.' + id, 'PATCH', {password: newPass.trim()})
     .then(function(){ showToast('Password updated.'); })
     .catch(function(){ showToast('Failed to update password.'); });
+}
+
 function deleteCoach(id, name) {
   if (!confirm('Delete coach "' + name + '"?\n\nThis cannot be undone.')) return;
   supa('coaches?id=eq.' + id, 'DELETE')
