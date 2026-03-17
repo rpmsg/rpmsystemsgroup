@@ -4579,11 +4579,9 @@ function exportCSV(type) {
   if (type === 'roster') {
     var rows = '';
     ROSTER.forEach(function(r){
-      rows += '"'+r.name+'","'+r.teamName+'","'+r.status+'","'+r.date+'"
-';
+      rows += '"'+r.name+'","'+r.teamName+'","'+r.status+'","'+r.date+'"\n';
     });
-    download('athlete_name,team,status,submitted_date
-', rows);
+    download('athlete_name,team,status,submitted_date\n', rows);
 
   } else if (type === 'panic') {
     supa('panic_cycle_responses?select=*&order=created_at.desc').then(function(data) {
@@ -4593,11 +4591,9 @@ function exportCSV(type) {
         var teamRow   = TEAMS.find(function(t){ return t.id === p.team_id; });
         var name = rosterRow ? rosterRow.name : p.athlete_id;
         var team = teamRow   ? teamRow.name   : p.team_id;
-        rows += '"'+name+'","'+team+'","'+(p.q1_trigger||'')+'","'+(p.q3_emotions||'')+'","'+(p.q6_body_response||'')+'","'+(p.q7_reaction||'')+'","'+(p.q8_behavior||'')+'","'+(p.q11_aftermath||'')+'"
-';
+        rows += '"'+name+'","'+team+'","'+(p.q1_trigger||'')+'","'+(p.q3_emotions||'')+'","'+(p.q6_body_response||'')+'","'+(p.q7_reaction||'')+'","'+(p.q8_behavior||'')+'","'+(p.q11_aftermath||'')+'"\n';
       });
-      download('athlete_name,team,trigger,emotions,body_response,reaction,behavior,aftermath
-', rows);
+      download('athlete_name,team,trigger,emotions,body_response,reaction,behavior,aftermath\n', rows);
     });
 
   } else if (type === 'social') {
@@ -4608,13 +4604,10 @@ function exportCSV(type) {
         var teamRow   = TEAMS.find(function(t){ return t.id === s.team_id; });
         var name = rosterRow ? rosterRow.name : s.athlete_id;
         var team = teamRow   ? teamRow.name   : s.team_id;
-        if (s.nominee_1) rows += '"'+name+'","'+team+'",'+s.question_number+',"'+s.nominee_1+'","'+s.question_type+'"
-';
-        if (s.nominee_2) rows += '"'+name+'","'+team+'",'+s.question_number+',"'+s.nominee_2+'","'+s.question_type+'"
-';
+        if (s.nominee_1) rows += '"'+name+'","'+team+'",'+s.question_number+',"'+s.nominee_1+'","'+s.question_type+'"\n';
+        if (s.nominee_2) rows += '"'+name+'","'+team+'",'+s.question_number+',"'+s.nominee_2+'","'+s.question_type+'"\n';
       });
-      download('athlete_name,team,question_number,nominated_player,type
-', rows);
+      download('athlete_name,team,question_number,nominated_player,type\n', rows);
     });
 
   } else if (type === 'scores') {
@@ -4623,11 +4616,9 @@ function exportCSV(type) {
       (data||[]).forEach(function(s) {
         var teamRow = TEAMS.find(function(t){ return t.id === s.team_id; });
         var team = teamRow ? teamRow.name : s.team_id;
-        rows += '"'+s.athlete_name+'","'+team+'",'+s.positive_mentions+','+s.negative_mentions+',"'+s.social_role+'"
-';
+        rows += '"'+s.athlete_name+'","'+team+'",'+s.positive_mentions+','+s.negative_mentions+',"'+s.social_role+'"\n';
       });
-      download('athlete_name,team,positive_mentions,negative_mentions,social_role
-', rows);
+      download('athlete_name,team,positive_mentions,negative_mentions,social_role\n', rows);
     });
   }
 }
