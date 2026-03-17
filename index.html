@@ -1304,7 +1304,7 @@ function coachLogin() {
       }
       setLoading('btn-coach-login', false, 'Access Dashboard →');
       show('s-dash');
-      buildDash();
+      buildDash(data[0].team_id);
     })
     .catch(function() {
       showErr('login-err', 'Connection error. Please try again.');
@@ -1313,9 +1313,9 @@ function coachLogin() {
 }
 
 // ── Coach dashboard ────────────────────────────────────────
-function buildDash() {
-  // Load live data — get first active team for this coach
-  supa('teams?status=eq.active&select=id,name,team_code,season&limit=1')
+function buildDash(teamId) {
+  // Load live data — get the team assigned to this coach
+  supa('teams?id=eq.' + teamId + '&select=id,name,team_code,season&limit=1')
     .then(function(teams) {
       if (!teams || !teams.length) { buildDashDemo(); return; }
       var team = teams[0];
