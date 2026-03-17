@@ -2200,6 +2200,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!el) return;
     if (el.getAttribute('data-action') === 'toggleConsent') toggleConsent();
   });
+  // Pre-fill team code from URL parameter (QR code scan)
+  var urlCode = new URLSearchParams(window.location.search).get('code');
+  if (urlCode) {
+    document.getElementById('inp-code').value = urlCode.toUpperCase();
+    show('s-code');
+  }
 });
 
 })();
