@@ -351,6 +351,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
   .fld-row{grid-template-columns:1fr}
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -2648,7 +2649,7 @@ var ADMIN_PASS  = 'RPMadmin26';
 
 var SUPA_URL = 'https://skdcfigtjooffalsnwbf.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrZGNmaWd0am9vZmZhbHNud2JmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTQ1MzIsImV4cCI6MjA4ODgzMDUzMn0.1A33rYXLvlRrUCbXRVT5tDsHbMyasO_OxdSHygL5WoY';
-var PORTAL_URL = 'https://charming-crepe-e94fa8.netlify.app';
+var PORTAL_URL = 'https://rpmsystemsgroup.com';
 
 function supa(path, method, body) {
   return fetch(SUPA_URL + '/rest/v1/' + path, {
@@ -3270,36 +3271,9 @@ function showQR(code, teamName) {
 
 function drawQR(text) {
   var canvas = document.getElementById('qr-canvas');
-  var ctx = canvas.getContext('2d');
-  var S = 200;
-  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,S,S);
-  // Simple visual QR placeholder — real QR requires a library
-  // In production: use qrcode.js CDN
-  ctx.fillStyle = '#111';
-  ctx.font = 'bold 13px system-ui,sans-serif';
-  ctx.textAlign = 'center';
-  // Draw a grid pattern as placeholder
-  var cell = 8, cols = Math.floor(S/cell);
-  var seed = text.split('').reduce(function(a,c){ return a+c.charCodeAt(0); },0);
-  for (var r=0; r<cols; r++) {
-    for (var c2=0; c2<cols; c2++) {
-      if (((r*cols+c2 + seed*(r+1)) % 3) === 0 ||
-          r<3||r>cols-4||c2<3||c2>cols-4) {
-        ctx.fillStyle = '#111';
-        ctx.fillRect(c2*cell+1, r*cell+1, cell-1, cell-1);
-      }
-    }
-  }
-  // Finder pattern corners
-  [[0,0],[0,cols-7],[cols-7,0]].forEach(function(pos){
-    ctx.fillStyle='#fff'; ctx.fillRect(pos[1]*cell, pos[0]*cell, 56, 56);
-    ctx.fillStyle='#111'; ctx.fillRect(pos[1]*cell, pos[0]*cell, 56, 56);
-    ctx.fillStyle='#fff'; ctx.fillRect(pos[1]*cell+6, pos[0]*cell+6, 44, 44);
-    ctx.fillStyle='#111'; ctx.fillRect(pos[1]*cell+12, pos[0]*cell+12, 32, 32);
+  QRCode.toCanvas(canvas, text, { width: 200, margin: 2, color: { dark: '#111111', light: '#ffffff' } }, function(err) {
+    if (err) console.error('QR generation failed:', err);
   });
-  ctx.fillStyle = '#555';
-  ctx.font = '9px system-ui,sans-serif';
-  ctx.fillText(currentQRCode, S/2, S-6);
 }
 
 function downloadQR() {
@@ -3429,7 +3403,7 @@ var ADMIN_PASS  = 'RPMadmin26';
 
 var SUPA_URL = 'https://skdcfigtjooffalsnwbf.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrZGNmaWd0am9vZmZhbHNud2JmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTQ1MzIsImV4cCI6MjA4ODgzMDUzMn0.1A33rYXLvlRrUCbXRVT5tDsHbMyasO_OxdSHygL5WoY';
-var PORTAL_URL = 'https://charming-crepe-e94fa8.netlify.app';
+var PORTAL_URL = 'https://rpmsystemsgroup.com';
 
 function supa(path, method, body) {
   return fetch(SUPA_URL + '/rest/v1/' + path, {
@@ -3963,36 +3937,9 @@ function showQR(code, teamName) {
 
 function drawQR(text) {
   var canvas = document.getElementById('qr-canvas');
-  var ctx = canvas.getContext('2d');
-  var S = 200;
-  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,S,S);
-  // Simple visual QR placeholder — real QR requires a library
-  // In production: use qrcode.js CDN
-  ctx.fillStyle = '#111';
-  ctx.font = 'bold 13px system-ui,sans-serif';
-  ctx.textAlign = 'center';
-  // Draw a grid pattern as placeholder
-  var cell = 8, cols = Math.floor(S/cell);
-  var seed = text.split('').reduce(function(a,c){ return a+c.charCodeAt(0); },0);
-  for (var r=0; r<cols; r++) {
-    for (var c2=0; c2<cols; c2++) {
-      if (((r*cols+c2 + seed*(r+1)) % 3) === 0 ||
-          r<3||r>cols-4||c2<3||c2>cols-4) {
-        ctx.fillStyle = '#111';
-        ctx.fillRect(c2*cell+1, r*cell+1, cell-1, cell-1);
-      }
-    }
-  }
-  // Finder pattern corners
-  [[0,0],[0,cols-7],[cols-7,0]].forEach(function(pos){
-    ctx.fillStyle='#fff'; ctx.fillRect(pos[1]*cell, pos[0]*cell, 56, 56);
-    ctx.fillStyle='#111'; ctx.fillRect(pos[1]*cell, pos[0]*cell, 56, 56);
-    ctx.fillStyle='#fff'; ctx.fillRect(pos[1]*cell+6, pos[0]*cell+6, 44, 44);
-    ctx.fillStyle='#111'; ctx.fillRect(pos[1]*cell+12, pos[0]*cell+12, 32, 32);
+  QRCode.toCanvas(canvas, text, { width: 200, margin: 2, color: { dark: '#111111', light: '#ffffff' } }, function(err) {
+    if (err) console.error('QR generation failed:', err);
   });
-  ctx.fillStyle = '#555';
-  ctx.font = '9px system-ui,sans-serif';
-  ctx.fillText(currentQRCode, S/2, S-6);
 }
 
 function downloadQR() {
