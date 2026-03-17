@@ -1295,9 +1295,9 @@ function coachLogin() {
   }
 
   // Real coach login — checks Supabase coaches table
-  supa('coaches?email=eq.' + encodeURIComponent(em) + '&select=id,full_name,team_id')
+  supa('coaches?email=eq.' + encodeURIComponent(em) + '&select=id,full_name,team_id,password')
     .then(function(data) {
-      if (!data || !data.length) {
+      if (!data || !data.length || data[0].password !== pw) {
         showErr('login-err', 'Invalid credentials.');
         setLoading('btn-coach-login', false, 'Access Dashboard →');
         return;
@@ -2567,6 +2567,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="fld"><label>Last Name</label><input type="text" id="ac-last" placeholder="Last"></div>
       </div>
       <div class="fld"><label>Email</label><input type="email" id="ac-email" placeholder="coach@university.edu"></div>
+      <div class="fld"><label>Password</label><input type="text" id="ac-pass" placeholder="They will use this to log in"></div>
       <div class="fld"><label>Assign Team</label><select id="ac-team"></select></div>
       <div class="err" id="ac-err"></div>
       <div class="suc" id="ac-suc"></div>
@@ -3147,11 +3148,12 @@ function addCoach() {
   var last  = document.getElementById('ac-last').value.trim();
   var email = document.getElementById('ac-email').value.trim();
   var team  = document.getElementById('ac-team').value;
+  var pass  = document.getElementById('ac-pass').value.trim();
   var err   = document.getElementById('ac-err');
   var suc   = document.getElementById('ac-suc');
-  if (!first||!last||!email||!team){ err.textContent='All fields required.'; err.style.display='block'; return; }
+  if (!first||!last||!email||!pass||!team){ err.textContent='All fields required.'; err.style.display='block'; return; }
   err.style.display = 'none';
-  supa('coaches', 'POST', {full_name:first+' '+last, email:email, team_id:team})
+  supa('coaches', 'POST', {full_name:first+' '+last, email:email, password:pass, team_id:team})
     .then(function(data) {
       if (!data || data.code || data.error) {
         err.textContent = (data && (data.message||data.error)) || 'Failed to create coach login.';
@@ -3165,7 +3167,7 @@ function addCoach() {
       suc.style.display = 'block';
       setTimeout(function(){ closeModal('modal-add-coach'); suc.style.display='none';
         document.getElementById('ac-first').value=''; document.getElementById('ac-last').value='';
-        document.getElementById('ac-email').value=''; }, 1800);
+        document.getElementById('ac-email').value=''; document.getElementById('ac-pass').value=''; }, 1800);
     })
     .catch(function(){ err.textContent='Connection error.'; err.style.display='block'; });
 }
@@ -3806,11 +3808,12 @@ function addCoach() {
   var last  = document.getElementById('ac-last').value.trim();
   var email = document.getElementById('ac-email').value.trim();
   var team  = document.getElementById('ac-team').value;
+  var pass  = document.getElementById('ac-pass').value.trim();
   var err   = document.getElementById('ac-err');
   var suc   = document.getElementById('ac-suc');
-  if (!first||!last||!email||!team){ err.textContent='All fields required.'; err.style.display='block'; return; }
+  if (!first||!last||!email||!pass||!team){ err.textContent='All fields required.'; err.style.display='block'; return; }
   err.style.display = 'none';
-  supa('coaches', 'POST', {full_name:first+' '+last, email:email, team_id:team})
+  supa('coaches', 'POST', {full_name:first+' '+last, email:email, password:pass, team_id:team})
     .then(function(data) {
       if (!data || data.code || data.error) { err.textContent=(data&&(data.message||data.error))||'Failed to create coach.'; err.style.display='block'; return; }
       var created = Array.isArray(data) ? data[0] : data;
@@ -3820,7 +3823,7 @@ function addCoach() {
       suc.textContent='Login created for '+first+' '+last+'.'; suc.style.display='block';
       setTimeout(function(){ closeModal('modal-add-coach'); suc.style.display='none';
         document.getElementById('ac-first').value=''; document.getElementById('ac-last').value='';
-        document.getElementById('ac-email').value=''; }, 1800);
+        document.getElementById('ac-email').value=''; document.getElementById('ac-pass').value=''; }, 1800);
     })
     .catch(function(){ err.textContent='Connection error.'; err.style.display='block'; });
 }
