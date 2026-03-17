@@ -863,7 +863,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
         <div class="stat"><div class="sv g">—</div><div class="sl">Core Influencers</div></div>
         <div class="stat"><div class="sv r">—</div><div class="sl">Friction Flags</div></div>
       </div>
-      <div class="sh"><div class="stit">Roster</div><button class="btn bo bsm">Export CSV</button></div>
+      <div class="sh"><div class="stit">Roster</div><button class="btn bo bsm" onclick="exportCoachRoster()">Export CSV</button></div>
       <div class="rt">
         <div class="rth"><div>Athlete</div><div>Status</div><div>Social Role</div><div>Friction</div></div>
         <div id="coach-roster-rows"></div>
@@ -928,6 +928,8 @@ var currentTeamId = '';
 var teamId = '';
 var teamName = '';
 var athleteId = '';
+var lastRosterData = [];
+var lastScoresData = [];
 
 // ── Fallback demo data (shown if DB empty) ─────────────────
 var ROSTER_DEMO = ['Sofia Reyes','Jordan Mitchell','Camille Dubois','Priya Sharma','Alexis Carter','Nadia Okonkwo','Taylor Brooks','Ingrid Larsen','Mia Fontaine','Destiny Williams','Kezia Mwangi','Paige Henderson','Lucia Morales','Sasha Petrov','Amara Diallo','Riley Thompson','Zoe Castellano','Fatima Al-Rashid','Brooklyn Hayes','Chloe Nakamura','Vera Kozlova','Imani Jackson','Dani Ferreira','Leah Oduya','Morgan Steele','Anya Volkov'];
@@ -1325,6 +1327,7 @@ function coachLogin() {
       }
       setLoading('btn-coach-login', false, 'Access Dashboard →');
       localStorage.setItem('rpm_coach_team', data[0].team_id);
+      localStorage.setItem('rpm_coach_name', data[0].full_name);
       show('s-dash');
       buildDash(data[0].team_id);
     })
@@ -1363,6 +1366,8 @@ function buildDash(teamId) {
 
 function buildDashWithData(rosterData, scoresData) {
   if (!rosterData || !rosterData.length) { buildDashDemo(); return; }
+  lastRosterData = rosterData || [];
+  lastScoresData = scoresData  || [];
 
   var rl = {inf:'Core Influencer',rej:'Rejection Risk',iso:'Isolation Risk'};
   var roleMap = {'Core Influencer':'inf','Rejection Risk':'rej','Isolation Risk':'iso','Polarizing Figure':'pol'};
@@ -2112,6 +2117,26 @@ function buildPDFContent(teamLabel, data) {
 }
 
 
+function getReportData() {
+  var complete = lastRosterData.filter(function(r){ return r.status==='complete'; }).length;
+  var pending  = lastRosterData.length - complete;
+  var coreInf  = lastScoresData.filter(function(s){ return s.social_role==='Core Influencer'; }).length;
+  var friction = lastScoresData.filter(function(s){ return s.negative_mentions>=8; }).length;
+  var posPlayers = lastScoresData.slice().sort(function(a,b){ return b.positive_mentions-a.positive_mentions; })
+    .map(function(s){ return [s.athlete_name, s.positive_mentions]; });
+  var negPlayers = lastScoresData.slice().sort(function(a,b){ return b.negative_mentions-a.negative_mentions; })
+    .filter(function(s){ return s.negative_mentions>0; })
+    .map(function(s){ return [s.athlete_name, s.negative_mentions]; });
+  var suggs = [];
+  document.querySelectorAll('#suggestions .stxt').forEach(function(el){ suggs.push(el.textContent); });
+  return {
+    stats: { complete:complete, pending:pending, influencers:coreInf, frictionFlags:friction },
+    posPlayers: posPlayers,
+    negPlayers: negPlayers,
+    suggestions: suggs
+  };
+}
+
 function downloadReport() {
   var btn = document.getElementById('btn-download-report');
   var prog = document.getElementById('dl-progress');
@@ -2167,6 +2192,28 @@ function downloadReport() {
   }
   downloadNext();
 }
+
+// ── Coach roster export ────────────────────────────────────
+function exportCoachRoster() {
+  var rows = 'athlete_name,status,social_role,friction
+';
+  document.querySelectorAll('#coach-roster-rows .rtr').forEach(function(row) {
+    var cells = row.querySelectorAll("div");
+    var name   = cells[0] ? cells[0].textContent.trim() : '';
+    var status = cells[1] ? cells[1].textContent.trim() : '';
+    var role   = cells[2] ? cells[2].textContent.trim() : '';
+    var fric   = cells[3] ? cells[3].textContent.trim() : '';
+    rows += '"'+name+'",'+'"'+status+'",'+'"'+role+'",'+'"'+fric+'"'+'
+';
+  });
+  var blob = new Blob([rows], {type:'text/csv'});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Roster_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+window.exportCoachRoster = exportCoachRoster;
 
 // ── Event delegation ───────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
@@ -3239,9 +3286,11 @@ function addCoach() {
 }
 
 function resetCoachPass(id) {
-  showToast('Password reset not supported — coaches log in by email only.');
-}
-
+  var newPass = prompt('Enter new password for this coach:');
+  if (!newPass || !newPass.trim()) return;
+  supa('coaches?id=eq.' + id, 'PATCH', {password: newPass.trim()})
+    .then(function(){ showToast('Password updated.'); })
+    .catch(function(){ showToast('Failed to update password.'); });
 function deleteCoach(id, name) {
   if (!confirm('Delete coach "' + name + '"?\n\nThis cannot be undone.')) return;
   supa('coaches?id=eq.' + id, 'DELETE')
@@ -3264,8 +3313,8 @@ function confirmReset() {
   closeModal('modal-confirm-reset');
   Promise.all([
     supa('roster?id=eq.' + pendingResetId, 'PATCH', {status:'pending', completed_at:null}),
-    supa('panic_cycle_responses?roster_id=eq.' + pendingResetId, 'DELETE'),
-    supa('social_map_responses?responder_id=eq.' + pendingResetId, 'DELETE')
+    supa('panic_cycle_responses?athlete_id=eq.' + pendingResetId, 'DELETE'),
+    supa('social_map_responses?athlete_id=eq.' + pendingResetId, 'DELETE')
   ]).then(function() {
     var row = ROSTER.find(function(r){ return r.id===pendingResetId; });
     if (row) { row.status='pending'; row.date='—'; }
@@ -3390,6 +3439,8 @@ document.addEventListener('DOMContentLoaded', function(){
     restoreAdminSection();
   } else if (coachTeam && lastScreen === 's-dash') {
     show('s-dash');
+    var coachName = localStorage.getItem('rpm_coach_name') || 'Coach';
+    document.getElementById('tc-name').textContent = coachName;
     window.buildDash(coachTeam);
   } else if (lastScreen && lastScreen !== 's-land') {
     show(lastScreen);
@@ -3438,6 +3489,7 @@ function supa(path, method, body) {
 var TEAMS   = [];
 var ROSTER  = [];
 var COACHES = [];
+var PANIC   = [];
 var pendingResetId   = null;
 var pendingResetName = '';
 var csvParsedNames   = [];
@@ -3515,11 +3567,13 @@ function loadAllData() {
   Promise.all([
     supa('teams?select=*&order=created_at.desc'),
     supa('roster?select=*&order=full_name'),
-    supa('coaches?select=*&order=full_name')
+    supa('coaches?select=*&order=full_name'),
+    supa('panic_cycle_responses?select=*&order=created_at.desc')
   ]).then(function(results) {
     var rawTeams2   = (results[0] && Array.isArray(results[0])) ? results[0] : [];
     var rawRoster2  = (results[1] && Array.isArray(results[1])) ? results[1] : [];
     var rawCoaches2 = (results[2] && Array.isArray(results[2])) ? results[2] : [];
+    var rawPanic    = (results[3] && Array.isArray(results[3])) ? results[3] : [];
     TEAMS   = rawTeams2.map(normaliseTeam);
     ROSTER  = rawRoster2.map(function(r) {
       var norm = normaliseRoster(r);
@@ -3537,19 +3591,36 @@ function loadAllData() {
       }
       return norm;
     });
+    PANIC = rawPanic.map(function(p) {
+      var rosterRow = ROSTER.find(function(r){ return r.id === p.athlete_id; });
+      var teamRow   = TEAMS.find(function(t){ return t.id === p.team_id; });
+      return {
+        id:       p.id,
+        athlete:  rosterRow ? rosterRow.name : p.athlete_id,
+        team:     p.team_id,
+        teamName: teamRow ? teamRow.name : '',
+        trigger:  p.q1_trigger  || '',
+        emotion:  p.q3_emotions || '',
+        body:     p.q6_body_response || '',
+        reaction: p.q7_reaction || '',
+        behavior: p.q8_behavior || '',
+        aftermath:p.q11_aftermath || '',
+        pattern:  p.q9_pattern_sentence || ''
+      };
+    });
     // Compute athletes/complete counts from ROSTER (not stored on teams table)
     TEAMS.forEach(function(t) {
       var tr = ROSTER.filter(function(r){ return r.team === t.id; });
       t.athletes = tr.length;
       t.complete  = tr.filter(function(r){ return r.status === 'complete'; }).length;
     });
-    console.log('RPM after normalise:', TEAMS.length, 'teams,', ROSTER.length, 'roster');
     renderAll();
   }).catch(function(err) {
     console.error('loadAllData error:', err);
     TEAMS   = [];
     ROSTER  = [];
     COACHES = [];
+    PANIC   = [];
     renderAll();
   });
 }
@@ -3625,7 +3696,7 @@ function renderTeams() {
 // ── Roster ─────────────────────────────────────────────────
 function renderRoster(filterTeam) {
   var sel = document.getElementById('roster-team-filter');
-  if (sel && !sel.options.length) {
+  if (sel) {
     sel.innerHTML = '<option value="">All Teams</option>';
     TEAMS.forEach(function(t){ sel.innerHTML += '<option value="' + t.id + '">' + t.name + '</option>'; });
   }
@@ -3685,7 +3756,7 @@ function renderCoaches() {
 // ── Resets ─────────────────────────────────────────────────
 function renderResets(filterTeam) {
   var sel = document.getElementById('reset-team-filter');
-  if (sel && !sel.options.length) {
+  if (sel) {
     sel.innerHTML = '<option value="">All Teams</option>';
     TEAMS.forEach(function(t){ sel.innerHTML += '<option value="' + t.id + '">' + t.name + '</option>'; });
   }
@@ -3711,11 +3782,11 @@ function filterResets() {
 // ── Panic Cycles ───────────────────────────────────────────
 function renderPanic(filterTeam) {
   var sel = document.getElementById('panic-team-filter');
-  if (sel && !sel.options.length) {
+  if (sel) {
     sel.innerHTML = '<option value="">All Teams</option>';
     TEAMS.forEach(function(t){ sel.innerHTML += '<option value="' + t.id + '">' + t.name + '</option>'; });
+    if (filterTeam) sel.value = filterTeam;
   }
-  var PANIC = [];
   var items = filterTeam ? PANIC.filter(function(p){ return p.team===filterTeam; }) : PANIC;
   var stages = [
     {key:'trigger',  label:'Trigger'},
@@ -3728,13 +3799,18 @@ function renderPanic(filterTeam) {
   var h = '';
   items.forEach(function(p) {
     h += '<div class="pc-card">'
-       + '<div class="pc-card-hd"><span class="pc-card-name">' + p.name + '</span>'
-       + '<span class="pill pill-g">Complete</span></div>'
+       + '<div class="pc-card-hd"><span class="pc-card-name">' + p.athlete + '</span>'
+       + '<span style="font-size:10px;color:var(--mid);margin-left:8px">' + p.teamName + '</span>'
+       + '<span class="pill pill-g" style="margin-left:auto">Complete</span></div>'
        + '<div class="pc-stages">';
     stages.forEach(function(st) {
       h += '<div class="pc-stage"><div class="pc-stage-lbl">' + st.label + '</div>'
          + '<div class="pc-stage-val">' + (p[st.key] || '—') + '</div></div>';
     });
+    if (p.pattern) {
+      h += '<div class="pc-stage" style="grid-column:1/-1"><div class="pc-stage-lbl">Pattern (own words)</div>'
+         + '<div class="pc-stage-val">' + p.pattern + '</div></div>';
+    }
     h += '</div></div>';
   });
   document.getElementById('panic-cards').innerHTML = h || '<div style="color:var(--mid);font-size:12px;padding:20px 0">No completed panic cycles found.</div>';
@@ -3988,32 +4064,73 @@ function copyQRLink() {
 // ── Export ─────────────────────────────────────────────────
 function exportCSV(type) {
   var labels = {social:'Social_Map_Responses',panic:'Panic_Cycle_Responses',scores:'Pulse_Report_Scores',roster:'Roster_Status'};
-  var headers = {
-    social:  'athlete_name,team,question_number,nominated_player,type\n',
-    panic:   'athlete_name,team,trigger,emotion,body_response,reaction,behavior,aftermath\n',
-    scores:  'athlete_name,team,positive_mentions,negative_mentions,social_role\n',
-    roster:  'athlete_name,team,status,submitted_date\n'
-  };
-  // Build sample rows from demo data
-  var rows = '';
-  var PANIC_DATA = [];
-  if (type === 'panic') {
-    PANIC_DATA.forEach(function(p){
-      rows += '"'+p.name+'","Demo Team","'+p.trigger+'","'+p.emotion+'","'+p.body+'","'+p.reaction+'","'+p.behavior+'","'+p.aftermath+'"\n';
-    });
-  } else if (type === 'roster') {
+  showToast('Preparing export...');
+
+  function download(header, rows) {
+    var csv  = header + rows;
+    var blob = new Blob([csv], {type:'text/csv'});
+    var a    = document.createElement('a');
+    a.href   = URL.createObjectURL(blob);
+    a.download = labels[type] + '_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('Exported ' + labels[type] + '.csv');
+  }
+
+  if (type === 'roster') {
+    var rows = '';
     ROSTER.forEach(function(r){
-      rows += '"'+r.name+'","'+r.teamName+'","'+r.status+'","'+r.date+'"\n';
+      rows += '"'+r.name+'","'+r.teamName+'","'+r.status+'","'+r.date+'"
+';
+    });
+    download('athlete_name,team,status,submitted_date
+', rows);
+
+  } else if (type === 'panic') {
+    supa('panic_cycle_responses?select=*&order=created_at.desc').then(function(data) {
+      var rows = '';
+      (data||[]).forEach(function(p) {
+        var rosterRow = ROSTER.find(function(r){ return r.id === p.athlete_id; });
+        var teamRow   = TEAMS.find(function(t){ return t.id === p.team_id; });
+        var name = rosterRow ? rosterRow.name : p.athlete_id;
+        var team = teamRow   ? teamRow.name   : p.team_id;
+        rows += '"'+name+'","'+team+'","'+(p.q1_trigger||'')+'","'+(p.q3_emotions||'')+'","'+(p.q6_body_response||'')+'","'+(p.q7_reaction||'')+'","'+(p.q8_behavior||'')+'","'+(p.q11_aftermath||'')+'"
+';
+      });
+      download('athlete_name,team,trigger,emotions,body_response,reaction,behavior,aftermath
+', rows);
+    });
+
+  } else if (type === 'social') {
+    supa('social_map_responses?select=*&order=athlete_id,question_number').then(function(data) {
+      var rows = '';
+      (data||[]).forEach(function(s) {
+        var rosterRow = ROSTER.find(function(r){ return r.id === s.athlete_id; });
+        var teamRow   = TEAMS.find(function(t){ return t.id === s.team_id; });
+        var name = rosterRow ? rosterRow.name : s.athlete_id;
+        var team = teamRow   ? teamRow.name   : s.team_id;
+        if (s.nominee_1) rows += '"'+name+'","'+team+'",'+s.question_number+',"'+s.nominee_1+'","'+s.question_type+'"
+';
+        if (s.nominee_2) rows += '"'+name+'","'+team+'",'+s.question_number+',"'+s.nominee_2+'","'+s.question_type+'"
+';
+      });
+      download('athlete_name,team,question_number,nominated_player,type
+', rows);
+    });
+
+  } else if (type === 'scores') {
+    supa('pulse_report_scores?select=*&order=team_id,positive_mentions.desc').then(function(data) {
+      var rows = '';
+      (data||[]).forEach(function(s) {
+        var teamRow = TEAMS.find(function(t){ return t.id === s.team_id; });
+        var team = teamRow ? teamRow.name : s.team_id;
+        rows += '"'+s.athlete_name+'","'+team+'",'+s.positive_mentions+','+s.negative_mentions+',"'+s.social_role+'"
+';
+      });
+      download('athlete_name,team,positive_mentions,negative_mentions,social_role
+', rows);
     });
   }
-  var csv = headers[type] + rows;
-  var blob = new Blob([csv], {type:'text/csv'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = labels[type] + '_' + new Date().toISOString().slice(0,10) + '.csv';
-  a.click();
-  URL.revokeObjectURL(a.href);
-  showToast('Exported ' + labels[type] + '.csv');
 }
 
 // ── Panic PDF ──────────────────────────────────────────────
