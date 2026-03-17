@@ -4149,7 +4149,8 @@ function renderRoster(filterTeam) {
     TEAMS.forEach(function(t){ sel.innerHTML += '<option value="' + t.id + '">' + t.name + '</option>'; });
     if (prev) sel.value = prev;
   }
-  var rows = filterTeam ? ROSTER.filter(function(r){ return r.team === filterTeam; }) : ROSTER;
+  var rows = (filterTeam ? ROSTER.filter(function(r){ return r.team === filterTeam; }) : ROSTER)
+    .slice().sort(function(a,b){ var al=a.name.split(' ').pop().toLowerCase(),bl=b.name.split(' ').pop().toLowerCase(); return al<bl?-1:al>bl?1:0; });
   var h = '';
   rows.forEach(function(r) {
     h += '<div class="tbl-row" style="grid-template-columns:1.5fr 1fr 100px 120px 210px">'
