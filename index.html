@@ -4070,18 +4070,20 @@ function normaliseCoach(c) {
 
 // ── Load data ──────────────────────────────────────────────
 function loadAllData() {
+  var safe = function(p){ return p.catch(function(){ return []; }); };
   Promise.all([
-    supa('teams?select=*&order=created_at.desc'),
-    supa('roster?select=*&order=full_name'),
-    supa('coaches?select=*&order=full_name'),
-    supa('panic_cycle_responses?select=*&order=created_at.desc'),
-    supa('social_map_responses?select=*&order=athlete_id,question_number')
+    safe(supa('teams?select=*&order=created_at.desc')),
+    safe(supa('roster?select=*&order=full_name')),
+    safe(supa('coaches?select=*&order=full_name')),
+    safe(supa('panic_cycle_responses?select=*&order=created_at.desc')),
+    safe(supa('social_map_responses?select=*&order=athlete_id,question_number'))
   ]).then(function(results) {
     var rawTeams2   = (results[0] && Array.isArray(results[0])) ? results[0] : [];
     var rawRoster2  = (results[1] && Array.isArray(results[1])) ? results[1] : [];
     var rawCoaches2 = (results[2] && Array.isArray(results[2])) ? results[2] : [];
     var rawPanic    = (results[3] && Array.isArray(results[3])) ? results[3] : [];
     var rawSocial   = (results[4] && Array.isArray(results[4])) ? results[4] : [];
+    console.log('[RPM] loadAllData — panic rows:', rawPanic.length, '| social rows:', rawSocial.length, '| panic raw:', results[3]);
     TEAMS   = rawTeams2.map(normaliseTeam);
     ROSTER  = rawRoster2.map(function(r) {
       var norm = normaliseRoster(r);
