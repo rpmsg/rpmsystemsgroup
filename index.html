@@ -4107,13 +4107,17 @@ function loadAllData() {
         athlete:  rosterRow ? rosterRow.name : p.athlete_id,
         team:     p.team_id,
         teamName: teamRow ? teamRow.name : '',
-        trigger:  p.q1_trigger  || '',
-        emotion:  p.q3_emotions || '',
-        body:     p.q6_body_response || '',
-        reaction: p.q7_reaction || '',
-        behavior: p.q8_behavior || '',
-        aftermath:p.q11_aftermath || '',
-        pattern:  p.q9_pattern_sentence || ''
+        trigger:   p.q1_trigger           || '',
+        signal:    p.q2_first_signal      || '',
+        emotion:   p.q3_emotions          || '',
+        voice:     p.q4_inner_voice       || '',
+        identity:  p.q5_identity_phrase   || '',
+        body:      p.q6_body_response     || '',
+        reaction:  p.q7_reaction          || '',
+        behavior:  p.q8_behavior          || '',
+        pattern:   p.q9_pattern_sentence  || '',
+        outcome:   p.q10_outcome          || '',
+        aftermath: p.q11_aftermath        || ''
       };
     });
     // Build SOCIAL_MAP: group rows by athlete_id, resolving name from ROSTER
@@ -4325,13 +4329,18 @@ function renderPanic(filterTeam) {
     if (filterTeam) sel.value = filterTeam;
   }
   var items = filterTeam ? PANIC.filter(function(p){ return p.team===filterTeam; }) : PANIC;
+  items = items.slice().sort(function(a,b){ var al=a.athlete.split(' ').pop().toLowerCase(),bl=b.athlete.split(' ').pop().toLowerCase(); return al<bl?-1:al>bl?1:0; });
   var stages = [
-    {key:'trigger',  label:'Trigger'},
-    {key:'emotion',  label:'Emotion'},
-    {key:'body',     label:'Body Response'},
-    {key:'reaction', label:'Reaction'},
-    {key:'behavior', label:'Behavior'},
-    {key:'aftermath',label:'Aftermath'}
+    {key:'trigger',   label:'Q1 — Trigger',       sub:'What type of situation most often starts your cycle?'},
+    {key:'signal',    label:'Q2 — First Signal',   sub:'When this happens, what is the first thing you notice?'},
+    {key:'emotion',   label:'Q3 — Emotions',       sub:'Which emotions feel closest in those moments?'},
+    {key:'voice',     label:'Q4 — Inner Voice',    sub:'What is your most common automatic thought?'},
+    {key:'identity',  label:'Q5 — Identity',       sub:'Which phrase feels closest to your experience?'},
+    {key:'body',      label:'Q6 — Body Response',  sub:'What happens in your body?'},
+    {key:'reaction',  label:'Q7 — Reaction',       sub:'What emotional reaction usually shows up?'},
+    {key:'behavior',  label:'Q8 — Behavior',       sub:'What do you usually do next?'},
+    {key:'outcome',   label:'Q10 — Outcome',       sub:'What usually happens after this sequence?'},
+    {key:'aftermath', label:'Q11 — Aftermath',     sub:'How do you usually feel afterward?'}
   ];
   var h = '';
   items.forEach(function(p) {
@@ -4339,14 +4348,20 @@ function renderPanic(filterTeam) {
        + '<div class="pc-card-hd"><span class="pc-card-name">' + p.athlete + '</span>'
        + '<span style="font-size:10px;color:var(--mid);margin-left:8px">' + p.teamName + '</span>'
        + '<span class="pill pill-g" style="margin-left:auto">Complete</span></div>'
-       + '<div class="pc-stages">';
+       + '<div style="margin-top:10px">';
     stages.forEach(function(st) {
-      h += '<div class="pc-stage"><div class="pc-stage-lbl">' + st.label + '</div>'
-         + '<div class="pc-stage-val">' + (p[st.key] || '—') + '</div></div>';
+      h += '<div style="display:grid;grid-template-columns:200px 1fr;gap:4px 12px;padding:6px 0;border-bottom:1px solid var(--bdr)">'
+         + '<div style="font-size:10px;font-weight:600;color:var(--gl)">' + st.label + '</div>'
+         + '<div style="font-size:10px;color:var(--mid)">' + st.sub + '</div>'
+         + '<div style="grid-column:2;font-size:12px;color:var(--w);padding:2px 0">' + (p[st.key] || '<span style="color:var(--mid)">—</span>') + '</div>'
+         + '</div>';
     });
     if (p.pattern) {
-      h += '<div class="pc-stage" style="grid-column:1/-1"><div class="pc-stage-lbl">Pattern (own words)</div>'
-         + '<div class="pc-stage-val">' + p.pattern + '</div></div>';
+      h += '<div style="padding:8px 0 4px">'
+         + '<div style="font-size:10px;font-weight:600;color:var(--gl)">Q9 — Pattern (own words)</div>'
+         + '<div style="font-size:10px;color:var(--mid);margin-bottom:4px">In one sentence, what does this look like for you?</div>'
+         + '<div style="font-size:12px;color:var(--w);font-style:italic">' + p.pattern + '</div>'
+         + '</div>';
     }
     h += '</div></div>';
   });
