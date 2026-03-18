@@ -4375,35 +4375,35 @@ var SM_QUESTIONS = [
 ];
 
 function renderSocialMap(filterTeam) {
-  var sel = document.getElementById("social-team-filter");
+  var sel = document.getElementById('social-team-filter');
   if (sel) {
     var prev = filterTeam !== undefined ? filterTeam : sel.value;
-    sel.innerHTML = "<option value="">All Teams</option>";
-    TEAMS.forEach(function(t){ sel.innerHTML += "<option value="" + t.id + "">" + t.name + "</option>"; });
+    sel.innerHTML = '<option value="">All Teams</option>';
+    TEAMS.forEach(function(t){ sel.innerHTML += '<option value="' + t.id + '">' + t.name + '</option>'; });
     if (prev) sel.value = prev;
   }
   var items = filterTeam ? SOCIAL_MAP.filter(function(s){ return s.team === filterTeam; }) : SOCIAL_MAP;
-  items = items.slice().sort(function(a,b){ var al=a.athlete.split(" ").pop().toLowerCase(),bl=b.athlete.split(" ").pop().toLowerCase(); return al<bl?-1:al>bl?1:0; });
-  var h = "";
+  items = items.slice().sort(function(a,b){ var al=a.athlete.split(' ').pop().toLowerCase(),bl=b.athlete.split(' ').pop().toLowerCase(); return al<bl?-1:al>bl?1:0; });
+  var h = '';
   items.forEach(function(s) {
-    h += "<div class="pc-card">"
-       + "<div class="pc-card-hd"><span class="pc-card-name">" + s.athlete + "</span>"
-       + "<span style="font-size:10px;color:var(--mid);margin-left:8px">" + s.teamName + "</span>"
-       + "<span class="pill pill-g" style="margin-left:auto">Complete</span></div>"
-       + "<div style="margin-top:10px">";
+    h += '<div class="pc-card">'
+       + '<div class="pc-card-hd"><span class="pc-card-name">' + s.athlete + '</span>'
+       + '<span style="font-size:10px;color:var(--mid);margin-left:8px">' + s.teamName + '</span>'
+       + '<span class="pill pill-g" style="margin-left:auto">Complete</span></div>'
+       + '<div style="margin-top:10px">';
     SM_QUESTIONS.forEach(function(smq) {
       var ans = s.questions[smq.n];
-      var nominees = ans ? [ans.n1, ans.n2].filter(Boolean).join(", ") : "";
-      var catColor = smq.positive ? "var(--gl)" : "#e09a52";
-      h += "<div style="display:grid;grid-template-columns:160px 1fr;gap:4px 12px;padding:6px 0;border-bottom:1px solid var(--bdr)">"
-         + "<div style="font-size:10px;font-weight:600;color:" + catColor + "">" + smq.cat + "</div>"
-         + "<div style="font-size:10px;color:var(--mid)">" + smq.q + "</div>"
-         + "<div style="grid-column:2;font-size:12px;color:var(--w);padding:2px 0">" + (nominees || "<span style="color:var(--mid)">No selection</span>") + "</div>"
-         + "</div>";
+      var nominees = ans ? [ans.n1, ans.n2].filter(Boolean).join(', ') : '';
+      var catColor = smq.positive ? 'var(--gl)' : '#e09a52';
+      h += '<div style="display:grid;grid-template-columns:160px 1fr;gap:4px 12px;padding:6px 0;border-bottom:1px solid var(--bdr)">'
+         + '<div style="font-size:10px;font-weight:600;color:' + catColor + '">' + smq.cat + '</div>'
+         + '<div style="font-size:10px;color:var(--mid)">' + smq.q + '</div>'
+         + '<div style="grid-column:2;font-size:12px;color:var(--w);padding:2px 0">' + (nominees || '<span style="color:var(--mid)">No selection</span>') + '</div>'
+         + '</div>';
     });
-    h += "</div></div>";
+    h += '</div></div>';
   });
-  document.getElementById("social-cards").innerHTML = h || "<div style="color:var(--mid);font-size:12px;padding:20px 0">No social map responses found.</div>";
+  document.getElementById('social-cards').innerHTML = h || '<div style="color:var(--mid);font-size:12px;padding:20px 0">No social map responses found.</div>';
 }
 
 function filterSocialMap() {
