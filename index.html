@@ -4075,8 +4075,8 @@ function loadAllData() {
     safe(supa('teams?select=*&order=created_at.desc')),
     safe(supa('roster?select=*&order=full_name')),
     safe(supa('coaches?select=*&order=full_name')),
-    safe(supa('panic_cycle_responses?select=*&order=created_at.desc')),
-    safe(supa('social_map_responses?select=*&order=athlete_id,question_number'))
+    safe(supa('panic_cycle_responses?select=*')),
+    safe(supa('social_map_responses?select=*&order=question_number'))
   ]).then(function(results) {
     var rawTeams2   = (results[0] && Array.isArray(results[0])) ? results[0] : [];
     var rawRoster2  = (results[1] && Array.isArray(results[1])) ? results[1] : [];
