@@ -4786,16 +4786,27 @@ function exportCSV(type) {
     download('athlete_name,team,status,submitted_date\n', rows);
 
   } else if (type === 'panic') {
-    supa('panic_cycle_responses?select=*&order=created_at.desc').then(function(data) {
+    supa('panic_cycle_responses?select=*').then(function(data) {
       var rows = '';
       (data||[]).forEach(function(p) {
         var rosterRow = ROSTER.find(function(r){ return r.id === p.athlete_id; });
         var teamRow   = TEAMS.find(function(t){ return t.id === p.team_id; });
         var name = rosterRow ? rosterRow.name : p.athlete_id;
         var team = teamRow   ? teamRow.name   : p.team_id;
-        rows += '"'+name+'","'+team+'","'+(p.q1_trigger||'')+'","'+(p.q3_emotions||'')+'","'+(p.q6_body_response||'')+'","'+(p.q7_reaction||'')+'","'+(p.q8_behavior||'')+'","'+(p.q11_aftermath||'')+'"\n';
+        rows += '"'+name+'","'+team+'",'
+              + '"'+(p.q1_trigger||'')+'",'
+              + '"'+(p.q2_first_signal||'')+'",'
+              + '"'+(p.q3_emotions||'')+'",'
+              + '"'+(p.q4_inner_voice||'')+'",'
+              + '"'+(p.q5_identity_phrase||'')+'",'
+              + '"'+(p.q6_body_response||'')+'",'
+              + '"'+(p.q7_reaction||'')+'",'
+              + '"'+(p.q8_behavior||'')+'",'
+              + '"'+(p.q9_pattern_sentence||'')+'",'
+              + '"'+(p.q10_outcome||'')+'",'
+              + '"'+(p.q11_aftermath||'')+'"\n';
       });
-      download('athlete_name,team,trigger,emotions,body_response,reaction,behavior,aftermath\n', rows);
+      download('athlete_name,team,trigger,first_signal,emotions,inner_voice,identity,body_response,reaction,behavior,pattern,outcome,aftermath\n', rows);
     });
 
   } else if (type === 'social') {
@@ -4831,29 +4842,38 @@ function generatePanicPDF() {
   var today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
   var cards = '';
   PANIC.forEach(function(p) {
-    function row(label, val) {
+    function row(label, question, val) {
       if (!val) return '';
-      return '<div style="margin-bottom:10px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:3px">'+label+'</div>'
-           + '<div style="font-size:12px;color:#222;line-height:1.5;padding:8px 12px;background:#f5f5f5;border-radius:6px">'+val+'</div></div>';
+      return '<div style="margin-bottom:12px">'
+           + '<div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#1A7A4A;font-weight:700;margin-bottom:1px">' + label + '</div>'
+           + '<div style="font-size:9px;color:#999;margin-bottom:4px">' + question + '</div>'
+           + '<div style="font-size:12px;color:#222;line-height:1.5;padding:8px 12px;background:#f5f5f5;border-radius:6px">' + val + '</div></div>';
     }
     cards += '<div style="page-break-after:always;padding:40px 48px;font-family:Arial,sans-serif">'
            + '<div style="border-bottom:3px solid #1A7A4A;padding-bottom:16px;margin-bottom:24px">'
            + '<div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#888;margin-bottom:4px">RPM Systems Group — Panic Cycle Profile</div>'
-           + '<div style="font-size:26px;font-weight:900;color:#1A7A4A">'+p.athlete+'</div>'
-           + '<div style="font-size:12px;color:#888;margin-top:2px">'+p.teamName+' &nbsp;·&nbsp; Generated '+today+' &nbsp;·&nbsp; Confidential — Practitioner Only</div>'
+           + '<div style="font-size:26px;font-weight:900;color:#1A7A4A">' + p.athlete + '</div>'
+           + '<div style="font-size:12px;color:#888;margin-top:2px">' + p.teamName + ' &nbsp;·&nbsp; Generated ' + today + ' &nbsp;·&nbsp; Confidential — Practitioner Only</div>'
            + '</div>'
-           + row('Primary Trigger', p.trigger)
-           + row('Emotional Response', p.emotion)
-           + row('Body Response', p.body)
-           + row('Immediate Reaction', p.reaction)
-           + row('Behavioral Pattern', p.behavior)
-           + row('Aftermath / Recovery', p.aftermath)
-           + (p.pattern ? '<div style="margin-top:20px;padding:14px 16px;border-left:4px solid #1A7A4A;background:#f0f9f4;border-radius:0 8px 8px 0"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#1A7A4A;margin-bottom:4px">Athlete\'s Pattern Sentence</div><div style="font-size:13px;font-style:italic;color:#333">"'+p.pattern+'"</div></div>' : '')
+           + row('Q1 — Primary Trigger',    'What type of situation most often starts your cycle?',         p.trigger)
+           + row('Q2 — First Signal',       'When this happens, what is the first thing you notice?',       p.signal)
+           + row('Q3 — Emotions',           'Which emotions feel closest in those moments?',                p.emotion)
+           + row('Q4 — Inner Voice',        'What is your most common automatic thought?',                  p.voice)
+           + row('Q5 — Identity',           'Which phrase feels closest to your experience?',               p.identity)
+           + row('Q6 — Body Response',      'What happens in your body?',                                   p.body)
+           + row('Q7 — Reaction',           'What emotional reaction usually shows up?',                    p.reaction)
+           + row('Q8 — Behavior',           'What do you usually do next?',                                 p.behavior)
+           + row('Q10 — Outcome',           'What usually happens after this sequence?',                    p.outcome)
+           + row('Q11 — Aftermath',         'How do you usually feel afterward?',                           p.aftermath)
+           + (p.pattern ? '<div style="margin-top:20px;padding:14px 16px;border-left:4px solid #1A7A4A;background:#f0f9f4;border-radius:0 8px 8px 0">'
+              + '<div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#1A7A4A;font-weight:700;margin-bottom:2px">Q9 — Pattern (Athlete's Own Words)</div>'
+              + '<div style="font-size:9px;color:#999;margin-bottom:6px">In one sentence, what does this look like for you?</div>'
+              + '<div style="font-size:13px;font-style:italic;color:#333">&ldquo;' + p.pattern + '&rdquo;</div></div>' : '')
            + '</div>';
   });
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Panic Cycle Profiles</title>'
            + '<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#fff;color:#111}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>'
-           + '</head><body>'+cards+'</body></html>';
+           + '</head><body>' + cards + '</body></html>';
   var w = window.open('', '_blank');
   if (!w) { showToast('Please allow pop-ups to generate the PDF.'); return; }
   w.document.write(html);
@@ -4861,7 +4881,6 @@ function generatePanicPDF() {
   w.focus();
   setTimeout(function(){ w.print(); }, 400);
 }
-
 // ── Modal helpers ──────────────────────────────────────────
 function openModal(id) {
   document.getElementById(id).classList.add('on');
