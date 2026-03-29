@@ -21,13 +21,15 @@ function docStatus(athlete) {
   if (!athlete.responses) return 'no-responses'
   if (!athlete.doc) return 'no-doc'
   if (athlete.doc.released) return 'released'
-  return 'draft'
+  if (!athlete.doc.coaching_note?.trim()) return 'needs-note'
+  return 'ready'
 }
 
 function DocStatusPill({ status }) {
   if (status === 'no-responses') return <span className="pill pill-gray">No data</span>
   if (status === 'no-doc')       return <span className="pill pill-amber">Needs doc</span>
-  if (status === 'draft')        return <span className="pill pill-amber">Draft</span>
+  if (status === 'needs-note')   return <span className="pill pill-amber">Needs coaching note</span>
+  if (status === 'ready')        return <span className="pill pill-green">Ready to release</span>
   return <span className="pill pill-green">Released</span>
 }
 
@@ -221,8 +223,11 @@ export default function AdminCycles() {
 
             {/* Editable document */}
             <div style={{ padding: '20px 22px', overflowY: 'auto', maxHeight: 600 }}>
-              <div style={{ fontSize: 10, letterSpacing: 2, color: 'var(--gl)', textTransform: 'uppercase', marginBottom: 14 }}>
+              <div style={{ fontSize: 10, letterSpacing: 2, color: 'var(--gl)', textTransform: 'uppercase', marginBottom: 8 }}>
                 Cycle Document
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--mid)', marginBottom: 14, lineHeight: 1.5 }}>
+                Auto-generated from athlete responses. Review each section, edit if needed, then add your coaching note and release.
               </div>
 
               {[

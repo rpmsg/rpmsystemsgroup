@@ -35,6 +35,30 @@ export async function fetchRosterNames(teamId) {
   return (data || []).map(r => r.full_name)
 }
 
+function autoGenerateCycleDocument(pc) {
+  return {
+    trigger: pc.q1_trigger || '',
+    emotions: [
+      pc.q2_first_signal && `First signal: ${pc.q2_first_signal}.`,
+      pc.q3_emotions     && `Emotional response: ${pc.q3_emotions}.`,
+      pc.q4_inner_voice  && `Inner voice: ${pc.q4_inner_voice}.`,
+      pc.q5_identity_phrase && `Identity: ${pc.q5_identity_phrase}.`,
+    ].filter(Boolean).join('\n'),
+    body_response: pc.q6_body_response || '',
+    behavior: [
+      pc.q7_reaction         && `Reaction: ${pc.q7_reaction}.`,
+      pc.q8_behavior         && `Behavior: ${pc.q8_behavior}.`,
+      pc.q9_pattern_sentence && `Pattern: "${pc.q9_pattern_sentence}".`,
+    ].filter(Boolean).join('\n'),
+    aftermath: [
+      pc.q10_outcome  && `Outcome: ${pc.q10_outcome}.`,
+      pc.q11_aftermath && `Aftermath: ${pc.q11_aftermath}.`,
+    ].filter(Boolean).join('\n'),
+    coaching_note: '',
+    released: false,
+  }
+}
+
 export async function submitAssessment({ athleteId, teamId, pc, sm }) {
   // Save panic cycle
   const { error: pcErr } = await supabase
@@ -54,6 +78,15 @@ export async function submitAssessment({ athleteId, teamId, pc, sm }) {
     .update({ status: 'complete', completed_at: new Date().toISOString() })
     .eq('id', athleteId)
   if (rErr) throw rErr
+
+  // Auto-generate draft cycle document from responses
+  const doc = autoGenerateCycleDocument(pc)
+  await supabase
+    .from('panic_cycle_documents')
+    .upsert(
+      { athlete_id: athleteId, team_id: teamId, ...doc, updated_at: new Date().toISOString() },
+      { onConflict: 'team_id,athlete_id' }
+    )
 
   // Recalculate pulse scores
   await recalculatePulseScores(teamId)
