@@ -26,7 +26,7 @@ export default function CycleDocumentScreen({ athlete, team, onHome }) {
 
   if (loading) return (
     <>
-      <nav><div className="logo">RPM<span>.</span>SG</div><div className="ntag">My Cycle</div></nav>
+      <nav><img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} /><div className="ntag">My Cycle</div></nav>
       <div className="cw"><div className="spinner" /></div>
     </>
   )
@@ -35,7 +35,7 @@ export default function CycleDocumentScreen({ athlete, team, onHome }) {
   if (!doc || !doc.released) return (
     <>
       <nav>
-        <div className="logo">RPM<span>.</span>SG</div>
+        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
         <div className="ntag">My Cycle</div>
         <button className="btn bo bsm" onClick={onHome}>← Home</button>
       </nav>
@@ -56,7 +56,7 @@ export default function CycleDocumentScreen({ athlete, team, onHome }) {
   return (
     <>
       <nav>
-        <div className="logo">RPM<span>.</span>SG</div>
+        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
         <div className="ntag">My Cycle</div>
         <button className="btn bo bsm" onClick={onHome}>← Home</button>
       </nav>

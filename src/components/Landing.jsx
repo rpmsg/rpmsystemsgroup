@@ -2,12 +2,12 @@ export default function Landing({ onSelect }) {
   return (
     <>
       <nav>
-        <div className="logo">RPM<span>SG</span></div>
+        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
         <div className="ntag">Athlete Portal</div>
       </nav>
 
       <div className="hero">
-        <div className="eye">RPM Systems Group</div>
+        <img src="/logo.svg" alt="RPM Systems Group" style={{ width: 220, marginBottom: 28 }} />
         <div className="ht">Stop Spinning.<br /><span>Start Performing.</span></div>
         <div className="hs">The mental performance intake portal for collegiate athletes. Complete your assessment. Build your mental system.</div>
 

@@ -354,7 +354,7 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
   return (
     <>
       <nav>
-        <div className="logo">RPM<span>.</span>SG</div>
+        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
         <div className="ntag">
           {activePC ? 'Panic Cycle Assessment' : 'Social Map Assessment'}
         </div>

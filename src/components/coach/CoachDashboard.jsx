@@ -57,14 +57,14 @@ export default function CoachDashboard({ coach, onSignOut }) {
 
   if (loading) return (
     <>
-      <nav><div className="logo">RPM<span>.</span>SG</div><div className="ntag">Coach Dashboard</div><span /></nav>
+      <nav><img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} /><div className="ntag">Coach Dashboard</div><span /></nav>
       <div className="cw"><div className="spinner" /></div>
     </>
   )
 
   if (error) return (
     <>
-      <nav><div className="logo">RPM<span>.</span>SG</div><div className="ntag">Coach Dashboard</div>
+      <nav><img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} /><div className="ntag">Coach Dashboard</div>
         <button className="btn bo bsm" onClick={onSignOut}>← Sign Out</button>
       </nav>
       <div className="cw"><div className="box"><p style={{ color: 'var(--rl)' }}>{error}</p></div></div>
@@ -127,7 +127,7 @@ export default function CoachDashboard({ coach, onSignOut }) {
   return (
     <>
       <nav>
-        <div className="logo">RPM<span>.</span>SG</div>
+        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
         <div className="ntag">Coach Dashboard</div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {scores.length > 0 && (

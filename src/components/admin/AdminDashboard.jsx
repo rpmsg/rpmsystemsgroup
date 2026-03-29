@@ -19,7 +19,7 @@ export default function AdminDashboard({ onLogout, onBack }) {
   return (
     <>
       <nav>
-        <div className="logo">RPM<span>SG</span></div>
+        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
         <div className="ntag">Admin Panel</div>
         <button className="btn bo bsm" onClick={onLogout}>Sign Out</button>
       </nav>

@@ -25,7 +25,7 @@ export default function CyclePinScreen({ athlete, team, onBack, onVerified }) {
     return (
       <>
         <nav>
-          <div className="logo">RPM<span>.</span>SG</div>
+          <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
           <div className="ntag">View My Cycle</div>
         </nav>
         <div className="cw"><div className="spinner" /></div>
@@ -38,7 +38,7 @@ export default function CyclePinScreen({ athlete, team, onBack, onVerified }) {
     return (
       <>
         <nav>
-          <div className="logo">RPM<span>.</span>SG</div>
+          <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
           <div className="ntag">View My Cycle</div>
           <button className="btn bo bsm" onClick={onBack}>← Back</button>
         </nav>
@@ -60,7 +60,7 @@ export default function CyclePinScreen({ athlete, team, onBack, onVerified }) {
   return (
     <>
       <nav>
-        <div className="logo">RPM<span>.</span>SG</div>
+        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
         <div className="ntag">View My Cycle</div>
         <button className="btn bo bsm" onClick={onBack}>← Back</button>
       </nav>

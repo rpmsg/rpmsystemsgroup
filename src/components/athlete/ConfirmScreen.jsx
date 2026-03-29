@@ -2,7 +2,7 @@ export default function ConfirmScreen({ team, athlete, pc, onHome }) {
   return (
     <>
       <nav>
-        <div className="logo">RPM<span>.</span>SG</div>
+        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
         <div className="ntag">Complete</div>
         <span />
       </nav>

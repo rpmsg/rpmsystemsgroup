@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 340" width="600" height="340">
+  <!--
+    Replicating the HTML hero exactly:
+    - Canvas: 600×340 (proportional to HTML hero 340px tall)
+    - Three stacked elements centered, gap=14px between each
+    - Element 1: top-row  (dot 10px + gap18 + chevron svg 72×30 + gap18 + dot 10px)
+    - Element 2: RPM text (font-size 96px, Manrope 800, letter-spacing 0.1em, line-height 1 → ~96px tall)
+    - Element 3: sub-row  (rule 52px + gap10 + "Systems Group" + gap10 + rule 52px, ~12px tall)
+
+    Total stack height: 30 + 14 + 96 + 14 + 12 = 166px
+    Vertical center start: (340 - 166) / 2 = 87px
+
+    Element 1 top: y=87, center y = 87 + 15 = 102
+    Element 2 top: y = 87 + 30 + 14 = 131, baseline (96px font) ≈ 131 + 80 = 211
+    Element 3 top: y = 131 + 96 + 14 = 241, center y = 241 + 6 = 247
+
+    Horizontal center: x = 300
+
+    Top row total width: 10 + 18 + 72 + 18 + 10 = 128px
+    Row left edge: 300 - 64 = 236
+    - Left dot cx: 236 + 5 = 241
+    - Chevron group x offset: 236 + 10 + 18 = 264 ... but chevron SVG is placed as a group
+    - Right dot cx: 236 + 128 - 5 = 359
+
+    Chevron group: placed at x=264, y=87 (top of element 1)
+    Internal chevron viewBox="0 0 72 30" maps directly
+  -->
+
+  <!-- Background -->
+  <rect width="600" height="340" fill="#0C0C0E"/>
+
+  <!-- Subtle radial glow -->
+  <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#1DB954" stop-opacity="0.04"/>
+    <stop offset="100%" stop-color="#1DB954" stop-opacity="0"/>
+  </radialGradient>
+  <ellipse cx="300" cy="170" rx="280" ry="280" fill="url(#glow)"/>
+
+  <!-- ── TOP ROW ── centered at y=102 -->
+  <!-- Left dot (red), cx=241, cy=102, r=5 -->
+  <circle cx="241" cy="102" r="5" fill="#E8243C"/>
+
+  <!-- Chevron group: x=264, y=87, width=72, height=30 -->
+  <!-- Chevron 1 — 25% opacity -->
+  <polyline points="266,89 282,102 266,115" fill="none" stroke="#1DB954" stroke-opacity="0.25" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Chevron 2 — 60% opacity -->
+  <polyline points="282,89 298,102 282,115" fill="none" stroke="#1DB954" stroke-opacity="0.60" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Chevron 3 — 100% opacity -->
+  <polyline points="298,89 314,102 298,115" fill="none" stroke="#1DB954" stroke-opacity="1.00" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Right dot (green), cx=359, cy=102, r=5 -->
+  <circle cx="359" cy="102" r="5" fill="#1DB954"/>
+
+  <!-- ── RPM WORDMARK ── baseline at y=211 -->
+  <text
+    x="300"
+    y="211"
+    font-family="Manrope, Arial Black, sans-serif"
+    font-weight="800"
+    font-size="96"
+    letter-spacing="9.6"
+    fill="#FFFFFF"
+    text-anchor="middle"
+  >RPM</text>
+
+  <!-- ── SUB ROW ── centered at y=247 -->
+  <!-- Left rule -->
+  <line x1="196" y1="247" x2="248" y2="247" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1"/>
+  <!-- Systems Group label -->
+  <text
+    x="300"
+    y="251"
+    font-family="'Space Mono', 'Courier New', monospace"
+    font-weight="400"
+    font-size="8"
+    letter-spacing="3"
+    fill="#FFFFFF"
+    fill-opacity="0.28"
+    text-anchor="middle"
+  >SYSTEMS GROUP</text>
+  <!-- Right rule -->
+  <line x1="352" y1="247" x2="404" y2="247" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1"/>
+
+</svg>

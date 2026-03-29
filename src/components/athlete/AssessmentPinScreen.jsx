@@ -29,7 +29,7 @@ export default function AssessmentPinScreen({ athlete, team, onPinSet }) {
   return (
     <>
       <nav>
-        <div className="logo">RPM<span>.</span>SG</div>
+        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
         <div className="ntag">Assessment Complete</div>
       </nav>
       <div className="cw">

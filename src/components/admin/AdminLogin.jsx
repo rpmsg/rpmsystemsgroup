@@ -25,7 +25,7 @@ export default function AdminLogin({ onLogin, onBack }) {
   return (
     <>
       <nav>
-        <div className="logo">RPM<span>SG</span></div>
+        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
         <button className="back-link" onClick={onBack}>← Back</button>
       </nav>
       <div className="cw">
