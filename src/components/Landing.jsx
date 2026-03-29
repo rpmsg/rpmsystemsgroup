@@ -7,7 +7,7 @@ export default function Landing({ onSelect }) {
       </nav>
 
       <div className="hero">
-        <img src="/logo.svg" alt="RPM Systems Group" style={{ width: 220, marginBottom: 28 }} />
+        <div className="eye">RPM Systems Group</div>
         <div className="ht">Stop Spinning.<br /><span>Start Performing.</span></div>
         <div className="hs">The mental performance intake portal for collegiate athletes. Complete your assessment. Build your mental system.</div>
 
