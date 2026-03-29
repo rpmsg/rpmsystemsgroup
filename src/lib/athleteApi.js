@@ -81,12 +81,13 @@ export async function submitAssessment({ athleteId, teamId, pc, sm }) {
 
   // Auto-generate draft cycle document from responses
   const doc = autoGenerateCycleDocument(pc)
-  await supabase
+  const { error: docErr } = await supabase
     .from('panic_cycle_documents')
     .upsert(
       { athlete_id: athleteId, team_id: teamId, ...doc, updated_at: new Date().toISOString() },
       { onConflict: 'team_id,athlete_id' }
     )
+  if (docErr) throw docErr
 
   // Recalculate pulse scores
   await recalculatePulseScores(teamId)

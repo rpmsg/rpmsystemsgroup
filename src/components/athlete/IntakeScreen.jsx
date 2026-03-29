@@ -18,7 +18,18 @@ function mergeQuestions(defaults, overrides) {
   })
 }
 
+// Replace 'Other' in a list with the typed other-text (if provided)
+function resolveOther(values, otherText) {
+  return values.map(v => (v === 'Other' && otherText?.trim()) ? otherText.trim() : v)
+}
+
+function initials(name) {
+  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+}
+
 const TOTAL = 23
+
+// ── Sub-components defined at module scope to prevent remount on parent re-render ──
 
 function SidebarItem({ label, state }) {
   return (
@@ -29,30 +40,132 @@ function SidebarItem({ label, state }) {
   )
 }
 
-function stepState(stepN, current) {
-  if (stepN < current) return 'done'
-  if (stepN === current) return 'active'
-  return 'pending'
+function ProgressBar({ n }) {
+  const pct = Math.round((n / TOTAL) * 100)
+  return (
+    <div className="pm">
+      <div className="pml">Question {n} of {TOTAL}</div>
+      <div className="pt"><div className="pf" style={{ width: pct + '%' }} /></div>
+    </div>
+  )
 }
 
-function initials(name) {
-  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+function PCQuestion({ q, sel, otherVal, error, setText, toggleSingle, toggleMulti, setOtherText, navPC, donePC }) {
+  const otherSelected = sel.includes('Other')
+
+  return (
+    <div>
+      <ProgressBar n={q.n} />
+      <div className="qmeta">{q.meta}</div>
+      <div className="qt">{q.q}</div>
+      <div className="qs">{q.sub}</div>
+
+      {q.type === 'text' ? (
+        <textarea
+          placeholder={q.placeholder}
+          value={sel}
+          onChange={e => setText(q.id, e.target.value)}
+        />
+      ) : (
+        <>
+          <div className="choices">
+            {q.choices.map(c => {
+              const isSel = sel.includes(c)
+              return (
+                <div
+                  key={c}
+                  className={`choice${isSel ? ' sel' : ''}`}
+                  onClick={() => q.type === 'single' ? toggleSingle(q.id, c) : toggleMulti(q.id, c, q.max)}
+                >
+                  <span className="chk" />{c}
+                </div>
+              )
+            })}
+            <div
+              className={`choice${otherSelected ? ' sel' : ''}`}
+              onClick={() => q.type === 'single' ? toggleSingle(q.id, 'Other') : toggleMulti(q.id, 'Other', q.max)}
+            >
+              <span className="chk" />Other
+            </div>
+          </div>
+          {otherSelected && (
+            <textarea
+              placeholder="Please describe..."
+              value={otherVal}
+              onChange={e => setOtherText(q.id, e.target.value)}
+              style={{ marginTop: 8 }}
+            />
+          )}
+        </>
+      )}
+
+      {error && <div className="err" style={{ marginBottom: 8 }}>{error}</div>}
+
+      <div className="qnav">
+        {q.n === 11 ? (
+          <button className="btn bp" onClick={donePC}>Continue to Social Map →</button>
+        ) : (
+          <button className="btn bp" onClick={() => navPC(q.n + 1)}>Next →</button>
+        )}
+        {q.n > 1 && (
+          <button className="btn bo" onClick={() => navPC(q.n - 1)}>← Back</button>
+        )}
+      </div>
+    </div>
+  )
 }
 
-// Replace 'Other' in a list with the typed other-text (if provided)
-function resolveOther(values, otherText) {
-  return values.map(v => (v === 'Other' && otherText?.trim()) ? otherText.trim() : v)
+function SMQuestion({ q, smIndex, smTotal, sel, roster, athleteName, error, toggleRoster, navSM, handleSubmit, submitting }) {
+  const others = roster.filter(nm => nm.toLowerCase() !== athleteName.toLowerCase())
+  return (
+    <div>
+      <ProgressBar n={q.n} />
+      <div className="qmeta">{q.meta}</div>
+      <div className="qt">{q.q}</div>
+      <div className="qs">{q.sub || 'Select up to 2 teammates.'}</div>
+      <div className="rg">
+        {others.map(nm => (
+          <div
+            key={nm}
+            className={`ri${sel.includes(nm) ? ' sel' : ''}`}
+            onClick={() => toggleRoster(q.id, nm)}
+          >
+            <div className="av">{initials(nm)}</div>
+            {nm}
+          </div>
+        ))}
+      </div>
+      {error && <div className="err" style={{ marginBottom: 8 }}>{error}</div>}
+      <div className="qnav">
+        {smIndex === smTotal - 1 ? (
+          <>
+            <button className="btn bp" onClick={handleSubmit} disabled={submitting}>
+              {submitting ? 'Submitting…' : 'Submit Assessment ✓'}
+            </button>
+            <button className="btn bo" onClick={() => navSM(q.n - 1)}>← Back</button>
+          </>
+        ) : (
+          <>
+            <button className="btn bp" onClick={() => navSM(q.n + 1)}>Next →</button>
+            {smIndex > 0 && <button className="btn bo" onClick={() => navSM(q.n - 1)}>← Back</button>}
+          </>
+        )}
+      </div>
+    </div>
+  )
 }
+
+// ── Main component ─────────────────────────────────────────────
 
 export default function IntakeScreen({ team, athlete, onSubmitted }) {
-  const [step, setStep]           = useState('brk-start')
-  const [answers, setAnswers]     = useState({})      // { pc1: ['...'], pc9: 'text', sm1: ['Name'], ... }
-  const [otherTexts, setOtherTexts] = useState({})    // { pc1: 'typed text', pc3: 'typed text', ... }
-  const [roster, setRoster]       = useState([])
-  const [pcQuestions, setPcQ]     = useState(PC_QUESTIONS)
-  const [smQuestions, setSmQ]     = useState(SM_QUESTIONS)
-  const [loadingQ, setLoadingQ]   = useState(true)
-  const [error, setError]         = useState('')
+  const [step, setStep]             = useState('brk-start')
+  const [answers, setAnswers]       = useState({})
+  const [otherTexts, setOtherTexts] = useState({})
+  const [roster, setRoster]         = useState([])
+  const [pcQuestions, setPcQ]       = useState(PC_QUESTIONS)
+  const [smQuestions, setSmQ]       = useState(SM_QUESTIONS)
+  const [loadingQ, setLoadingQ]     = useState(true)
+  const [error, setError]           = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -71,13 +184,12 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
     return () => window.removeEventListener('beforeunload', warn)
   }, [team.id])
 
-  // ── Validation ────────────────────────────────────────────
+  // ── Validation ──────────────────────────────────────────────
 
   function isAnswered(q) {
     if (q.type === 'text') return (answers[q.id] || '').trim().length > 0
     const sel = answers[q.id] || []
     if (sel.length === 0) return false
-    // If 'Other' is selected, require they typed something
     if (sel.includes('Other') && !(otherTexts[q.id] || '').trim()) return false
     return true
   }
@@ -98,7 +210,7 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
     return true
   }
 
-  // ── Answer helpers ────────────────────────────────────────
+  // ── Answer helpers ───────────────────────────────────────────
 
   function toggleSingle(key, value) {
     setAnswers(a => ({ ...a, [key]: [value] }))
@@ -134,18 +246,17 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
     setError('')
   }
 
-  // ── Navigation ────────────────────────────────────────────
+  // ── Navigation ───────────────────────────────────────────────
 
   function startPC() { setStep(1); setError('') }
   function startSM() { setStep(12); setError('') }
 
   function navPC(n) {
-    // Going forward: validate current
     if (n > step && typeof step === 'number' && step <= 11) {
       if (!validatePC(step)) return
     }
     setError('')
-    if (n < 1)  { setStep('brk-start'); return }
+    if (n < 1) { setStep('brk-start'); return }
     setStep(n)
   }
 
@@ -161,17 +272,15 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
     setStep(n)
   }
 
-  // ── Submit ────────────────────────────────────────────────
+  // ── Submit ───────────────────────────────────────────────────
 
   async function handleSubmit() {
     setError('')
     setSubmitting(true)
     try {
-      // Helper: get resolved single answer
       function single(key) {
         return resolveOther(answers[key] || [], otherTexts[key])[0] || ''
       }
-      // Helper: get resolved multi answer as joined string
       function multi(key) {
         return resolveOther(answers[key] || [], otherTexts[key]).join(', ')
       }
@@ -192,17 +301,14 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
         q11_aftermath:       single('pc11'),
       }
 
-      const sm = smQuestions.map((q, i) => {
-        const sel = answers[q.id] || []
-        return {
-          athlete_id:      athlete.id,
-          team_id:         team.id,
-          question_number: i + 1,
-          question_type:   q.positive ? 'positive' : 'negative',
-          nominee_1:       sel[0] || null,
-          nominee_2:       sel[1] || null,
-        }
-      })
+      const sm = smQuestions.map((q, i) => ({
+        athlete_id:      athlete.id,
+        team_id:         team.id,
+        question_number: i + 1,
+        question_type:   q.positive ? 'positive' : 'negative',
+        nominee_1:       (answers[q.id] || [])[0] || null,
+        nominee_2:       (answers[q.id] || [])[1] || null,
+      }))
 
       await submitAssessment({ athleteId: athlete.id, teamId: team.id, pc, sm })
       onSubmitted(pc)
@@ -213,7 +319,7 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
     }
   }
 
-  // ── Sidebar ───────────────────────────────────────────────
+  // ── Sidebar ──────────────────────────────────────────────────
 
   const currentN = typeof step === 'number' ? step : step === 'brk-social' ? 12 : 0
 
@@ -234,134 +340,23 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
     { n: 22, label: 'Least Interaction' }, { n: 23, label: 'Hard to Communicate' },
   ]
 
-  // ── Sub-components ────────────────────────────────────────
-
-  function ProgressBar({ n }) {
-    const pct = Math.round((n / TOTAL) * 100)
-    return (
-      <div className="pm">
-        <div className="pml">Question {n} of {TOTAL}</div>
-        <div className="pt"><div className="pf" style={{ width: pct + '%' }} /></div>
-      </div>
-    )
+  function stepState(stepN, current) {
+    if (stepN < current) return 'done'
+    if (stepN === current) return 'active'
+    return 'pending'
   }
 
-  function PCQuestion({ q }) {
-    const sel = answers[q.id] || []
-    const otherSelected = sel.includes('Other')
-    const otherVal = otherTexts[q.id] || ''
+  // ── Render ───────────────────────────────────────────────────
 
-    return (
-      <div>
-        <ProgressBar n={q.n} />
-        <div className="qmeta">{q.meta}</div>
-        <div className="qt">{q.q}</div>
-        <div className="qs">{q.sub}</div>
-
-        {q.type === 'text' ? (
-          <textarea
-            placeholder={q.placeholder}
-            value={answers[q.id] || ''}
-            onChange={e => setText(q.id, e.target.value)}
-          />
-        ) : (
-          <>
-            <div className="choices">
-              {q.choices.map(c => {
-                const isSel = sel.includes(c)
-                return (
-                  <div
-                    key={c}
-                    className={`choice${isSel ? ' sel' : ''}`}
-                    onClick={() => q.type === 'single' ? toggleSingle(q.id, c) : toggleMulti(q.id, c, q.max)}
-                  >
-                    <span className="chk" />{c}
-                  </div>
-                )
-              })}
-              <div
-                className={`choice${otherSelected ? ' sel' : ''}`}
-                onClick={() => q.type === 'single' ? toggleSingle(q.id, 'Other') : toggleMulti(q.id, 'Other', q.max)}
-              >
-                <span className="chk" />Other
-              </div>
-            </div>
-            {otherSelected && (
-              <textarea
-                placeholder="Please describe..."
-                value={otherVal}
-                onChange={e => setOtherText(q.id, e.target.value)}
-                style={{ marginTop: 8 }}
-              />
-            )}
-          </>
-        )}
-
-        {error && <div className="err" style={{ marginBottom: 8 }}>{error}</div>}
-
-        <div className="qnav">
-          {q.n === 11 ? (
-            <button className="btn bp" onClick={donePC}>Continue to Social Map →</button>
-          ) : (
-            <button className="btn bp" onClick={() => navPC(q.n + 1)}>Next →</button>
-          )}
-          {q.n > 1 && (
-            <button className="btn bo" onClick={() => navPC(q.n - 1)}>← Back</button>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  function SMQuestion({ q, smIndex }) {
-    const sel = answers[q.id] || []
-    const others = roster.filter(nm => nm.toLowerCase() !== athlete.full_name.toLowerCase())
-    return (
-      <div>
-        <ProgressBar n={q.n} />
-        <div className="qmeta">{q.meta}</div>
-        <div className="qt">{q.q}</div>
-        <div className="qs">{q.sub || 'Select up to 2 teammates.'}</div>
-        <div className="rg">
-          {others.map(nm => (
-            <div
-              key={nm}
-              className={`ri${sel.includes(nm) ? ' sel' : ''}`}
-              onClick={() => toggleRoster(q.id, nm)}
-            >
-              <div className="av">{initials(nm)}</div>
-              {nm}
-            </div>
-          ))}
-        </div>
-        {error && <div className="err" style={{ marginBottom: 8 }}>{error}</div>}
-        <div className="qnav">
-          {smIndex === smQuestions.length - 1 ? (
-            <>
-              <button className="btn bp" onClick={handleSubmit} disabled={submitting}>
-                {submitting ? 'Submitting…' : 'Submit Assessment ✓'}
-              </button>
-              <button className="btn bo" onClick={() => navSM(q.n - 1)}>← Back</button>
-            </>
-          ) : (
-            <>
-              <button className="btn bp" onClick={() => navSM(q.n + 1)}>Next →</button>
-              {smIndex > 0 && <button className="btn bo" onClick={() => navSM(q.n - 1)}>← Back</button>}
-            </>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  // ── Main render ───────────────────────────────────────────
+  const activePC = typeof step === 'number' && step >= 1  && step <= 11
+  const activeSM = typeof step === 'number' && step >= 12 && step <= 23
 
   return (
     <>
       <nav>
         <div className="logo">RPM<span>.</span>SG</div>
         <div className="ntag">
-          {typeof step === 'number' && step <= 11 ? 'Panic Cycle Assessment' : 'Social Map Assessment'}
+          {activePC ? 'Panic Cycle Assessment' : 'Social Map Assessment'}
         </div>
         <div style={{ fontSize: 11, color: 'var(--mid)' }}>
           {typeof step === 'number' ? `${step} / ${TOTAL}` : ''}
@@ -377,7 +372,7 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
         </div>
 
         <div className="im">
-          {step === 'brk-start' && (
+          {step === 'brk-start' && !loadingQ && (
             <div className="brk on">
               <div className="bico">🧠</div>
               <h2>Part 1: Your Panic Cycle</h2>
@@ -385,6 +380,7 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
               <button className="btn bp" onClick={startPC}>Let's Begin →</button>
             </div>
           )}
+          {step === 'brk-start' && loadingQ && <div className="spinner" />}
           {step === 'brk-social' && (
             <div className="brk on">
               <div className="bico">🔗</div>
@@ -393,9 +389,35 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
               <button className="btn bp" onClick={startSM}>Continue →</button>
             </div>
           )}
-          {loadingQ && step === 'brk-start' && <div className="spinner" />}
-          {typeof step === 'number' && step >= 1  && step <= 11 && <PCQuestion q={pcQuestions[step - 1]} />}
-          {typeof step === 'number' && step >= 12 && step <= 23 && <SMQuestion q={smQuestions[step - 12]} smIndex={step - 12} />}
+          {activePC && (
+            <PCQuestion
+              q={pcQuestions[step - 1]}
+              sel={pcQuestions[step - 1]?.type === 'text' ? (answers[pcQuestions[step - 1].id] || '') : (answers[pcQuestions[step - 1].id] || [])}
+              otherVal={otherTexts[pcQuestions[step - 1]?.id] || ''}
+              error={error}
+              setText={setText}
+              toggleSingle={toggleSingle}
+              toggleMulti={toggleMulti}
+              setOtherText={setOtherText}
+              navPC={navPC}
+              donePC={donePC}
+            />
+          )}
+          {activeSM && (
+            <SMQuestion
+              q={smQuestions[step - 12]}
+              smIndex={step - 12}
+              smTotal={smQuestions.length}
+              sel={answers[smQuestions[step - 12]?.id] || []}
+              roster={roster}
+              athleteName={athlete.full_name}
+              error={error}
+              toggleRoster={toggleRoster}
+              navSM={navSM}
+              handleSubmit={handleSubmit}
+              submitting={submitting}
+            />
+          )}
         </div>
       </div>
     </>
