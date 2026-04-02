@@ -5,7 +5,7 @@ export async function adminLogin(username, password) {
   const { data, error } = await supabase
     .from('admins')
     .select('*')
-    .eq('username', username)
+    .eq('email', username)
     .eq('password', password)
   if (error) throw error
   return data?.[0] || null
