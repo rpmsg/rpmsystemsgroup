@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { PC_QUESTIONS, SM_QUESTIONS, SM_QUESTIONS_SET2 } from './questions'
 import { fetchRosterNames, fetchCustomQuestions, submitAssessment } from '../../lib/athleteApi'
+import { useHome } from '../../HomeContext'
 
 function mergeQuestions(defaults, overrides) {
   const map = {}
@@ -42,6 +43,7 @@ function resolveOther(values, otherText) {
 }
 
 export default function IntakeScreen({ team, athlete, onSubmitted }) {
+  const goHome = useHome()
   const administration = team.current_administration || 1
   const questionSet    = administration === 2 ? 2 : 1
   const smOnly         = administration > 1
@@ -375,7 +377,7 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
   return (
     <>
       <nav>
-        <div className="logo">RPM<span>.</span>SG</div>
+        <div className="logo" onClick={goHome} style={{cursor:'pointer'}}>RPM<span>.</span>SG</div>
         <div className="ntag">
           {!smOnly && typeof step === 'number' && step <= 11 ? 'Panic Cycle Assessment' : 'Social Map Assessment'}
         </div>

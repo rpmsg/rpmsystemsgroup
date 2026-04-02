@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { coachLogin } from '../../lib/coachApi'
+import { useHome } from '../../HomeContext'
 
 export default function CoachLogin({ onBack, onLogin }) {
+  const goHome = useHome()
   const [email, setEmail]     = useState('')
   const [password, setPassword] = useState('')
   const [error, setError]     = useState('')
@@ -26,7 +28,7 @@ export default function CoachLogin({ onBack, onLogin }) {
   return (
     <>
       <nav>
-        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
+        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36,cursor:'pointer'}} onClick={goHome} />
         <div className="ntag">Coach Access</div>
         <button className="btn bo bsm" onClick={onBack}>← Back</button>
       </nav>

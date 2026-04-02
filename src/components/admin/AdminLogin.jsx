@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { adminLogin } from '../../lib/adminApi'
+import { useHome } from '../../HomeContext'
 
 export default function AdminLogin({ onLogin, onBack }) {
+  const goHome = useHome()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError]       = useState('')
@@ -25,7 +27,7 @@ export default function AdminLogin({ onLogin, onBack }) {
   return (
     <>
       <nav>
-        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
+        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36,cursor:'pointer'}} onClick={goHome} />
         <button className="back-link" onClick={onBack}>← Back</button>
       </nav>
       <div className="cw">

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useHome } from '../../HomeContext'
 import AdminTeams from './AdminTeams'
 import AdminCoaches from './AdminCoaches'
 import AdminRoster from './AdminRoster'
@@ -16,12 +17,13 @@ const TABS = [
 ]
 
 export default function AdminDashboard({ onLogout, onBack }) {
+  const goHome = useHome()
   const [tab, setTab] = useState('teams')
 
   return (
     <>
       <nav>
-        <div className="logo">RPM<span>SG</span></div>
+        <div className="logo" onClick={goHome} style={{cursor:'pointer'}}>RPM<span>SG</span></div>
         <div className="ntag">Admin Panel</div>
         <button className="btn bo bsm" onClick={onLogout}>Sign Out</button>
       </nav>

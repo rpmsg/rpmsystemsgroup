@@ -1,10 +1,13 @@
+import { useHome } from '../../HomeContext'
+
 export default function CycleNameScreen({ team, onBack, onSelect }) {
+  const goHome = useHome()
   const roster = team.roster || []
 
   return (
     <>
       <nav>
-        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
+        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36,cursor:'pointer'}} onClick={goHome} />
         <div className="ntag">View My Cycle</div>
         <button className="btn bo bsm" onClick={onBack}>← Back</button>
       </nav>

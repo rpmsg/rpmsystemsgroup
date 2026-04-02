@@ -4,14 +4,16 @@ import AthleteFlow from './components/athlete/AthleteFlow'
 import CycleFlow from './components/athlete/CycleFlow'
 import CoachFlow from './components/coach/CoachFlow'
 import AdminFlow from './components/admin/AdminFlow'
+import { HomeContext } from './HomeContext'
 
 export default function App() {
-  const [flow, setFlow] = useState(null) // null | 'athlete' | 'cycle' | 'coach' | 'admin'
+  const [flow, setFlow] = useState(null)
+  const goHome = () => setFlow(null)
 
-  if (flow === 'athlete') return <AthleteFlow onBack={() => setFlow(null)} />
-  if (flow === 'cycle')   return <CycleFlow   onBack={() => setFlow(null)} />
-  if (flow === 'coach')   return <CoachFlow   onBack={() => setFlow(null)} />
-  if (flow === 'admin')   return <AdminFlow   onBack={() => setFlow(null)} />
+  if (flow === 'athlete') return <HomeContext.Provider value={goHome}><AthleteFlow onBack={goHome} /></HomeContext.Provider>
+  if (flow === 'cycle')   return <HomeContext.Provider value={goHome}><CycleFlow   onBack={goHome} /></HomeContext.Provider>
+  if (flow === 'coach')   return <HomeContext.Provider value={goHome}><CoachFlow   onBack={goHome} /></HomeContext.Provider>
+  if (flow === 'admin')   return <HomeContext.Provider value={goHome}><AdminFlow   onBack={goHome} /></HomeContext.Provider>
 
   return <Landing onSelect={setFlow} />
 }

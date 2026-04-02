@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useHome } from '../../HomeContext'
 
 export default function ConsentScreen({ team, athlete, onBack, onProceed }) {
+  const goHome = useHome()
   const [checked, setChecked] = useState(false)
   const [error, setError]     = useState('')
 
@@ -12,7 +14,7 @@ export default function ConsentScreen({ team, athlete, onBack, onProceed }) {
   return (
     <>
       <nav>
-        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
+        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36,cursor:'pointer'}} onClick={goHome} />
         <div className="ntag">Before You Begin</div>
         <button className="btn bo bsm" onClick={onBack}>← Back</button>
       </nav>

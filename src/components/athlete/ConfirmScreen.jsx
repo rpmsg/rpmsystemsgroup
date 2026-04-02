@@ -1,4 +1,7 @@
+import { useHome } from '../../HomeContext'
+
 export default function ConfirmScreen({ team, athlete, pc, onHome }) {
+  const goHome = useHome()
   const smOnly = (team.current_administration || 1) > 1
   const adminLabel = team.current_administration === 2 ? 'Administration 2 — Mid Season'
                    : team.current_administration === 3 ? 'Administration 3 — End of Season'
@@ -7,7 +10,7 @@ export default function ConfirmScreen({ team, athlete, pc, onHome }) {
   return (
     <>
       <nav>
-        <div className="logo">RPM<span>.</span>SG</div>
+        <div className="logo" onClick={goHome} style={{cursor:'pointer'}}>RPM<span>.</span>SG</div>
         <div className="ntag">Complete</div>
         <span />
       </nav>

@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { setAthletePin } from '../../lib/cycleApi'
+import { useHome } from '../../HomeContext'
 
 export default function AssessmentPinScreen({ athlete, team, onPinSet }) {
+  const goHome = useHome()
   const [pin, setPin]         = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError]     = useState('')
@@ -29,7 +31,7 @@ export default function AssessmentPinScreen({ athlete, team, onPinSet }) {
   return (
     <>
       <nav>
-        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
+        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36,cursor:'pointer'}} onClick={goHome} />
         <div className="ntag">Assessment Complete</div>
       </nav>
       <div className="cw">

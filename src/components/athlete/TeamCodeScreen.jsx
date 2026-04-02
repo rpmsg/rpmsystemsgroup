@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { lookupTeamCode, fetchRoster, fetchCompletedAthleteIds } from '../../lib/athleteApi'
+import { useHome } from '../../HomeContext'
 
 export default function TeamCodeScreen({ onBack, onSuccess }) {
+  const goHome = useHome()
   const [code, setCode]     = useState('')
   const [error, setError]   = useState('')
   const [loading, setLoading] = useState(false)
@@ -33,7 +35,7 @@ export default function TeamCodeScreen({ onBack, onSuccess }) {
   return (
     <>
       <nav>
-        <div className="logo">RPM<span>.</span>SG</div>
+        <div className="logo" onClick={goHome} style={{cursor:'pointer'}}>RPM<span>.</span>SG</div>
         <div className="ntag">Athlete Intake</div>
         <button className="btn bo bsm" onClick={onBack}>← Back</button>
       </nav>

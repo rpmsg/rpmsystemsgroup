@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { fetchCycleDocument } from '../../lib/cycleApi'
+import { useHome } from '../../HomeContext'
 
 const SECTIONS = [
   { key: 'trigger',       icon: '⚡', label: 'Trigger',             sub: 'What sets me off'              },
@@ -10,6 +11,7 @@ const SECTIONS = [
 ]
 
 export default function CycleDocumentScreen({ athlete, team, onHome }) {
+  const goHome = useHome()
   const [doc, setDoc]       = useState(undefined)
   const [loading, setLoading] = useState(true)
 
@@ -35,7 +37,7 @@ export default function CycleDocumentScreen({ athlete, team, onHome }) {
   if (!doc || !doc.released) return (
     <>
       <nav>
-        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
+        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36,cursor:'pointer'}} onClick={goHome} />
         <div className="ntag">My Cycle</div>
         <button className="btn bo bsm" onClick={onHome}>← Home</button>
       </nav>
@@ -56,7 +58,7 @@ export default function CycleDocumentScreen({ athlete, team, onHome }) {
   return (
     <>
       <nav>
-        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
+        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36,cursor:'pointer'}} onClick={goHome} />
         <div className="ntag">My Cycle</div>
         <button className="btn bo bsm" onClick={onHome}>← Home</button>
       </nav>

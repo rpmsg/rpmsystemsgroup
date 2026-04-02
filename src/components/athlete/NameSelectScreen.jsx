@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useHome } from '../../HomeContext'
 
 function initials(name) {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 }
 
 export default function NameSelectScreen({ team, onBack, onSelect }) {
+  const goHome = useHome()
   const [selected, setSelected] = useState(null)
   const [error, setError]       = useState('')
 
@@ -24,7 +26,7 @@ export default function NameSelectScreen({ team, onBack, onSelect }) {
   return (
     <>
       <nav>
-        <div className="logo">RPM<span>.</span>SG</div>
+        <div className="logo" onClick={goHome} style={{cursor:'pointer'}}>RPM<span>.</span>SG</div>
         <div className="ntag">Athlete Intake</div>
         <button className="btn bo bsm" onClick={onBack}>← Back</button>
       </nav>

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { fetchAthletePin } from '../../lib/cycleApi'
+import { useHome } from '../../HomeContext'
 
 export default function CyclePinScreen({ athlete, team, onBack, onVerified }) {
+  const goHome = useHome()
   const [existingPin, setExistingPin] = useState(undefined) // undefined = loading
   const [pin, setPin]   = useState('')
   const [error, setError] = useState('')
@@ -25,7 +27,7 @@ export default function CyclePinScreen({ athlete, team, onBack, onVerified }) {
     return (
       <>
         <nav>
-          <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
+          <img src="/logo.svg" alt="RPM Systems Group" style={{height:36,cursor:'pointer'}} onClick={goHome} />
           <div className="ntag">View My Cycle</div>
         </nav>
         <div className="cw"><div className="spinner" /></div>
@@ -38,7 +40,7 @@ export default function CyclePinScreen({ athlete, team, onBack, onVerified }) {
     return (
       <>
         <nav>
-          <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
+          <img src="/logo.svg" alt="RPM Systems Group" style={{height:36,cursor:'pointer'}} onClick={goHome} />
           <div className="ntag">View My Cycle</div>
           <button className="btn bo bsm" onClick={onBack}>← Back</button>
         </nav>

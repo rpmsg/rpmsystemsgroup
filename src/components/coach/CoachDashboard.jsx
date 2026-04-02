@@ -3,6 +3,7 @@ import { fetchDashboardData, changePassword } from '../../lib/coachApi'
 import { supabase } from '../../lib/supabase'
 import ChangePasswordModal from './ChangePasswordModal'
 import AthleteModal from './AthleteModal'
+import { useHome } from '../../HomeContext'
 import PulseReportModal from './PulseReportModal'
 
 // Strip leading initials from old portal bug e.g. "CCCarmen Cline" → "Carmen Cline"
@@ -33,6 +34,7 @@ function tally(rows, field, total) {
 }
 
 export default function CoachDashboard({ coach, onSignOut }) {
+  const goHome = useHome()
   const [data, setData]               = useState(null)
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState('')
@@ -139,7 +141,7 @@ export default function CoachDashboard({ coach, onSignOut }) {
   return (
     <>
       <nav>
-        <div className="logo">RPM<span>.</span>SG</div>
+        <div className="logo" onClick={goHome} style={{cursor:'pointer'}}>RPM<span>.</span>SG</div>
         <div className="ntag">Coach Dashboard</div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {scores.length > 0 && (
