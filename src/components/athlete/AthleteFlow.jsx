@@ -3,23 +3,17 @@ import TeamCodeScreen from './TeamCodeScreen'
 import NameSelectScreen from './NameSelectScreen'
 import ConsentScreen from './ConsentScreen'
 import IntakeScreen from './IntakeScreen'
+import AssessmentPinScreen from './AssessmentPinScreen'
 import ConfirmScreen from './ConfirmScreen'
 
 // screen ids
-const S = { CODE: 'code', NAME: 'name', CONSENT: 'consent', INTAKE: 'intake', CONFIRM: 'confirm' }
+const S = { CODE: 'code', NAME: 'name', CONSENT: 'consent', INTAKE: 'intake', PIN: 'pin', CONFIRM: 'confirm' }
 
 export default function AthleteFlow({ onBack }) {
   const [screen, setScreen] = useState(S.CODE)
-  const [team, setTeam]     = useState(null)   // { id, name }
-  const [athlete, setAthlete] = useState(null) // { id, full_name }
-  const [submission, setSubmission] = useState(null) // final pc payload for confirm screen
-
-  function goBack() {
-    if (screen === S.CODE)    return onBack()
-    if (screen === S.NAME)    return setScreen(S.CODE)
-    if (screen === S.CONSENT) return setScreen(S.CODE)
-    if (screen === S.INTAKE)  return setScreen(S.CONSENT)
-  }
+  const [team, setTeam]       = useState(null)
+  const [athlete, setAthlete] = useState(null)
+  const [submission, setSubmission] = useState(null)
 
   return (
     <>
@@ -51,7 +45,18 @@ export default function AthleteFlow({ onBack }) {
         <IntakeScreen
           team={team}
           athlete={athlete}
-          onSubmitted={(pc) => { setSubmission(pc); setScreen(S.CONFIRM) }}
+          onSubmitted={(pc) => {
+            setSubmission(pc)
+            // Admin 1 only: create PIN for View My Cycle access
+            setScreen((team.current_administration || 1) === 1 ? S.PIN : S.CONFIRM)
+          }}
+        />
+      )}
+      {screen === S.PIN && (
+        <AssessmentPinScreen
+          athlete={athlete}
+          team={team}
+          onPinSet={() => setScreen(S.CONFIRM)}
         />
       )}
       {screen === S.CONFIRM && (
