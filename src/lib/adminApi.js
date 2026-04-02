@@ -5,7 +5,7 @@ export async function adminLogin(username, password) {
   const { data, error } = await supabase
     .from('admins')
     .select('*')
-    .eq('email', username)
+    .eq('username', username)
     .eq('password', password)
   if (error) throw error
   return data?.[0] || null
@@ -158,6 +158,40 @@ export async function unreleaseCycleDocument(athleteId, teamId) {
     .from('panic_cycle_documents')
     .update({ released: false, released_at: null, updated_at: new Date().toISOString() })
     .eq('athlete_id', athleteId).eq('team_id', teamId)
+  if (error) throw error
+}
+
+// ── Social Map Administration ─────────────────────────────────
+export async function fetchSocialMapAdminStatus() {
+  const [teamsRes, responsesRes] = await Promise.all([
+    supabase.from('teams').select('id, name, current_administration').order('name'),
+    supabase.from('social_map_responses').select('team_id, administration, athlete_id'),
+  ])
+  if (teamsRes.error) throw teamsRes.error
+
+  // Count distinct athletes per (team_id, administration)
+  const completionMap = {}
+  ;(responsesRes.data || []).forEach(r => {
+    const key = `${r.team_id}:${r.administration}`
+    if (!completionMap[key]) completionMap[key] = new Set()
+    completionMap[key].add(r.athlete_id)
+  })
+
+  return (teamsRes.data || []).map(t => ({
+    ...t,
+    completions: {
+      1: completionMap[`${t.id}:1`]?.size || 0,
+      2: completionMap[`${t.id}:2`]?.size || 0,
+      3: completionMap[`${t.id}:3`]?.size || 0,
+    },
+  }))
+}
+
+export async function advanceAdministration(teamId, newAdmin) {
+  const { error } = await supabase
+    .from('teams')
+    .update({ current_administration: newAdmin })
+    .eq('id', teamId)
   if (error) throw error
 }
 

@@ -159,3 +159,18 @@ export const SM_QUESTIONS = [
   { id: 'sm11', n: 22, meta: 'Social Map — Least Interaction',    q: 'Who do you tend to interact with the least?',                                                    positive: false },
   { id: 'sm12', n: 23, meta: 'Social Map — Hard to Communicate',  q: 'Who do you find it hardest to communicate with clearly or comfortably?',                        positive: false },
 ]
+
+export const SM_QUESTIONS_SET2 = [
+  { id: 'sm1',  n: 12, meta: 'Social Map — Trust',               q: 'Who on the team tells it like it is and gives you the most genuine feedback?',                                                          positive: true  },
+  { id: 'sm2',  n: 13, meta: 'Social Map — Communication',        q: 'Who has a communication style that helps you stay focused and confident in challenging situations?',                                    positive: true  },
+  { id: 'sm3',  n: 14, meta: 'Social Map — Safety',               q: 'When things aren\'t going well, who is the easiest person for you to talk to or seek advice from?',                                    positive: true  },
+  { id: 'sm4',  n: 15, meta: 'Social Map — Influence',            q: 'Whose presence and actions have the greatest positive impact on team morale and energy?',                                               positive: true  },
+  { id: 'sm5',  n: 16, meta: 'Social Map — Effectiveness',        q: 'Who do you collaborate or sync up with most naturally during team activities?',                                                         positive: true  },
+  { id: 'sm6',  n: 17, meta: 'Social Map — Decision Trust',       q: 'When the pressure is on, whose judgment and choices do you have the most confidence in?',                                               positive: true  },
+  { id: 'sm7',  n: 18, meta: 'Social Map — Understanding',        q: 'Who seems to really understand who you are, both as a player and as a person?',                                                        positive: true  },
+  { id: 'sm8',  n: 19, meta: 'Social Map — Most Interaction',     q: 'Who do you spend the most time with during practices, games, or team events?',                                                          positive: true  },
+  { id: 'sm9',  n: 20, meta: 'Social Map — Positive Environment', q: 'Who consistently makes the team environment feel more welcoming and encouraging?',                                                       positive: true  },
+  { id: 'sm10', n: 21, meta: 'Social Map — Least Connected',      q: 'Who do you feel the most distant from or have the weakest connection with on the team?',                                                positive: false, sub: 'Select up to 2. Confidential — helps identify athletes who may need more connection.' },
+  { id: 'sm11', n: 22, meta: 'Social Map — Least Interaction',    q: 'Who do you have the fewest interactions with during training sessions, meetings, or team travel?',                                      positive: false },
+  { id: 'sm12', n: 23, meta: 'Social Map — Hard to Communicate',  q: 'Who do you struggle to connect with or find it most difficult to exchange ideas with effectively?',                                     positive: false },
+]

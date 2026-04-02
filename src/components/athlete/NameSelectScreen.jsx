@@ -11,7 +11,7 @@ export default function NameSelectScreen({ team, onBack, onSelect }) {
   const roster = team.roster || []
 
   function handleSelect(athlete) {
-    if (athlete.status === 'complete') return
+    if (athlete.doneThisAdmin) return
     setSelected(athlete)
     setError('')
   }
@@ -24,7 +24,7 @@ export default function NameSelectScreen({ team, onBack, onSelect }) {
   return (
     <>
       <nav>
-        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
+        <div className="logo">RPM<span>.</span>SG</div>
         <div className="ntag">Athlete Intake</div>
         <button className="btn bo bsm" onClick={onBack}>← Back</button>
       </nav>
@@ -41,7 +41,7 @@ export default function NameSelectScreen({ team, onBack, onSelect }) {
           ) : (
             <div className="rg" style={{ marginTop: 16 }}>
               {roster.map(r => {
-                const done = r.status === 'complete'
+                const done = r.doneThisAdmin === true
                 const isSel = selected?.id === r.id
                 return (
                   <div

@@ -57,14 +57,14 @@ export default function CoachDashboard({ coach, onSignOut }) {
 
   if (loading) return (
     <>
-      <nav><img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} /><div className="ntag">Coach Dashboard</div><span /></nav>
+      <nav><div className="logo">RPM<span>.</span>SG</div><div className="ntag">Coach Dashboard</div><span /></nav>
       <div className="cw"><div className="spinner" /></div>
     </>
   )
 
   if (error) return (
     <>
-      <nav><img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} /><div className="ntag">Coach Dashboard</div>
+      <nav><div className="logo">RPM<span>.</span>SG</div><div className="ntag">Coach Dashboard</div>
         <button className="btn bo bsm" onClick={onSignOut}>← Sign Out</button>
       </nav>
       <div className="cw"><div className="box"><p style={{ color: 'var(--rl)' }}>{error}</p></div></div>
@@ -72,15 +72,27 @@ export default function CoachDashboard({ coach, onSignOut }) {
   )
 
   const { team, roster, panic } = data
-  // Normalize score names, dedupe by keeping highest positive_mentions per name
-  const scoreMap = {}
-  data.scores.forEach(s => {
-    const name = normalizeName(s.athlete_name)
-    if (!scoreMap[name] || s.positive_mentions > scoreMap[name].positive_mentions) {
-      scoreMap[name] = { ...s, athlete_name: name }
-    }
+
+  // Normalize a raw scores array: dedupe by name, keep highest positive_mentions
+  function normalizeScores(raw) {
+    const map = {}
+    ;(raw || []).forEach(s => {
+      const name = normalizeName(s.athlete_name)
+      if (!map[name] || s.positive_mentions > map[name].positive_mentions) {
+        map[name] = { ...s, athlete_name: name }
+      }
+    })
+    return Object.values(map).sort((a, b) => b.positive_mentions - a.positive_mentions)
+  }
+
+  // Normalize scores for default (dashboard) view
+  const scores = normalizeScores(data.scores)
+
+  // Normalize all administrations for PulseReportModal comparison view
+  const normalizedScoresByAdmin = {}
+  Object.entries(data.scoresByAdmin || {}).forEach(([admin, raw]) => {
+    normalizedScoresByAdmin[Number(admin)] = normalizeScores(raw)
   })
-  const scores = Object.values(scoreMap).sort((a, b) => b.positive_mentions - a.positive_mentions)
 
   const complete = roster.filter(r => r.status === 'complete').length
   const pending  = roster.length - complete
@@ -127,7 +139,7 @@ export default function CoachDashboard({ coach, onSignOut }) {
   return (
     <>
       <nav>
-        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
+        <div className="logo">RPM<span>.</span>SG</div>
         <div className="ntag">Coach Dashboard</div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {scores.length > 0 && (
@@ -343,6 +355,8 @@ export default function CoachDashboard({ coach, onSignOut }) {
         <PulseReportModal
           team={team}
           scores={scores}
+          scoresByAdmin={normalizedScoresByAdmin}
+          availableAdmins={data.availableAdmins || []}
           roster={roster}
           nominations={data.nominations}
           triggers={triggers}

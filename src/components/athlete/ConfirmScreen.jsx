@@ -1,8 +1,13 @@
 export default function ConfirmScreen({ team, athlete, pc, onHome }) {
+  const smOnly = (team.current_administration || 1) > 1
+  const adminLabel = team.current_administration === 2 ? 'Administration 2 — Mid Season'
+                   : team.current_administration === 3 ? 'Administration 3 — End of Season'
+                   : 'Administration 1 — Start of Season'
+
   return (
     <>
       <nav>
-        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
+        <div className="logo">RPM<span>.</span>SG</div>
         <div className="ntag">Complete</div>
         <span />
       </nav>
@@ -15,7 +20,8 @@ export default function ConfirmScreen({ team, athlete, pc, onHome }) {
           <h4>Your Submission</h4>
           <div className="cfrow"><span>Athlete</span><span>{athlete.full_name}</span></div>
           <div className="cfrow"><span>Team</span><span>{team.name}</span></div>
-          <div className="cfrow"><span>Panic Cycle</span><span style={{ color: 'var(--gl)' }}>✓ Complete</span></div>
+          <div className="cfrow"><span>Administration</span><span>{adminLabel}</span></div>
+          {!smOnly && <div className="cfrow"><span>Panic Cycle</span><span style={{ color: 'var(--gl)' }}>✓ Complete</span></div>}
           <div className="cfrow"><span>Social Map</span><span style={{ color: 'var(--gl)' }}>✓ Complete</span></div>
         </div>
 

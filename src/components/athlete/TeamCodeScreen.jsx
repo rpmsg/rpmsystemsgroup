@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { lookupTeamCode, fetchRoster } from '../../lib/athleteApi'
+import { lookupTeamCode, fetchRoster, fetchCompletedAthleteIds } from '../../lib/athleteApi'
 
 export default function TeamCodeScreen({ onBack, onSuccess }) {
   const [code, setCode]     = useState('')
@@ -16,8 +16,13 @@ export default function TeamCodeScreen({ onBack, onSuccess }) {
     try {
       const team = await lookupTeamCode(trimmed)
       if (!team) { setError('Team code not found. Check with your coach and try again.'); return }
-      const roster = await fetchRoster(team.id)
-      onSuccess({ ...team, roster })
+      const administration = team.current_administration || 1
+      const [roster, completedIds] = await Promise.all([
+        fetchRoster(team.id),
+        fetchCompletedAthleteIds(team.id, administration),
+      ])
+      const mergedRoster = roster.map(r => ({ ...r, doneThisAdmin: completedIds.has(r.id) }))
+      onSuccess({ ...team, roster: mergedRoster })
     } catch {
       setError('Connection error. Please try again.')
     } finally {
@@ -28,7 +33,7 @@ export default function TeamCodeScreen({ onBack, onSuccess }) {
   return (
     <>
       <nav>
-        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
+        <div className="logo">RPM<span>.</span>SG</div>
         <div className="ntag">Athlete Intake</div>
         <button className="btn bo bsm" onClick={onBack}>← Back</button>
       </nav>
@@ -38,7 +43,7 @@ export default function TeamCodeScreen({ onBack, onSuccess }) {
           <h2>Enter Your Team Code</h2>
           <p>Your coach provided a team code. Enter it below to find your name on the roster.</p>
           <p style={{ fontSize: 12, color: 'var(--mid)', marginTop: -8, marginBottom: 20 }}>
-            ⏱ Takes 10–12 minutes. Must be completed in one sitting — do not close or refresh the page.
+            ⏱ Takes 5–12 minutes. Must be completed in one sitting — do not close or refresh the page.
           </p>
           <form onSubmit={handleSubmit}>
             <div className="fld">

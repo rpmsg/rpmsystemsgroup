@@ -3,16 +3,23 @@ import TeamCodeScreen from './TeamCodeScreen'
 import NameSelectScreen from './NameSelectScreen'
 import ConsentScreen from './ConsentScreen'
 import IntakeScreen from './IntakeScreen'
-import AssessmentPinScreen from './AssessmentPinScreen'
 import ConfirmScreen from './ConfirmScreen'
 
-const S = { CODE: 'code', NAME: 'name', CONSENT: 'consent', INTAKE: 'intake', PIN: 'pin', CONFIRM: 'confirm' }
+// screen ids
+const S = { CODE: 'code', NAME: 'name', CONSENT: 'consent', INTAKE: 'intake', CONFIRM: 'confirm' }
 
 export default function AthleteFlow({ onBack }) {
-  const [screen, setScreen]     = useState(S.CODE)
-  const [team, setTeam]         = useState(null)
-  const [athlete, setAthlete]   = useState(null)
-  const [submission, setSubmission] = useState(null)
+  const [screen, setScreen] = useState(S.CODE)
+  const [team, setTeam]     = useState(null)   // { id, name }
+  const [athlete, setAthlete] = useState(null) // { id, full_name }
+  const [submission, setSubmission] = useState(null) // final pc payload for confirm screen
+
+  function goBack() {
+    if (screen === S.CODE)    return onBack()
+    if (screen === S.NAME)    return setScreen(S.CODE)
+    if (screen === S.CONSENT) return setScreen(S.CODE)
+    if (screen === S.INTAKE)  return setScreen(S.CONSENT)
+  }
 
   return (
     <>
@@ -26,7 +33,10 @@ export default function AthleteFlow({ onBack }) {
         <NameSelectScreen
           team={team}
           onBack={() => setScreen(S.CODE)}
-          onSelect={(athleteData) => { setAthlete(athleteData); setScreen(S.CONSENT) }}
+          onSelect={(athleteData) => {
+            setAthlete(athleteData)
+            setScreen((team.current_administration || 1) === 1 ? S.CONSENT : S.INTAKE)
+          }}
         />
       )}
       {screen === S.CONSENT && (
@@ -41,14 +51,7 @@ export default function AthleteFlow({ onBack }) {
         <IntakeScreen
           team={team}
           athlete={athlete}
-          onSubmitted={(pc) => { setSubmission(pc); setScreen(S.PIN) }}
-        />
-      )}
-      {screen === S.PIN && (
-        <AssessmentPinScreen
-          team={team}
-          athlete={athlete}
-          onPinSet={() => setScreen(S.CONFIRM)}
+          onSubmitted={(pc) => { setSubmission(pc); setScreen(S.CONFIRM) }}
         />
       )}
       {screen === S.CONFIRM && (

@@ -4,12 +4,14 @@ import AdminCoaches from './AdminCoaches'
 import AdminRoster from './AdminRoster'
 import AdminCycles from './AdminCycles'
 import AdminQuestions from './AdminQuestions'
+import AdminSocialMap from './AdminSocialMap'
 
 const TABS = [
   { id: 'teams',     label: 'Teams' },
   { id: 'coaches',   label: 'Coaches' },
   { id: 'roster',    label: 'Roster' },
   { id: 'cycles',    label: 'Panic Cycles' },
+  { id: 'socialmap', label: 'Social Map' },
   { id: 'questions', label: 'Questions' },
 ]
 
@@ -19,7 +21,7 @@ export default function AdminDashboard({ onLogout, onBack }) {
   return (
     <>
       <nav>
-        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} />
+        <div className="logo">RPM<span>SG</span></div>
         <div className="ntag">Admin Panel</div>
         <button className="btn bo bsm" onClick={onLogout}>Sign Out</button>
       </nav>
@@ -38,6 +40,7 @@ export default function AdminDashboard({ onLogout, onBack }) {
           {tab === 'coaches'   && <AdminCoaches />}
           {tab === 'roster'    && <AdminRoster />}
           {tab === 'cycles'    && <AdminCycles />}
+          {tab === 'socialmap' && <AdminSocialMap />}
           {tab === 'questions' && <AdminQuestions />}
         </div>
       </div>

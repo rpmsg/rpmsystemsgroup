@@ -8,7 +8,7 @@ export async function fetchCustomQuestions() {
 export async function lookupTeamCode(code) {
   const { data, error } = await supabase
     .from('teams')
-    .select('id, name, team_code')
+    .select('id, name, team_code, current_administration')
     .eq('team_code', code.toUpperCase())
     .eq('status', 'active')
   if (error) throw error
@@ -35,69 +35,50 @@ export async function fetchRosterNames(teamId) {
   return (data || []).map(r => r.full_name)
 }
 
-function autoGenerateCycleDocument(pc) {
-  return {
-    trigger: pc.q1_trigger || '',
-    emotions: [
-      pc.q2_first_signal && `First signal: ${pc.q2_first_signal}.`,
-      pc.q3_emotions     && `Emotional response: ${pc.q3_emotions}.`,
-      pc.q4_inner_voice  && `Inner voice: ${pc.q4_inner_voice}.`,
-      pc.q5_identity_phrase && `Identity: ${pc.q5_identity_phrase}.`,
-    ].filter(Boolean).join('\n'),
-    body_response: pc.q6_body_response || '',
-    behavior: [
-      pc.q7_reaction         && `Reaction: ${pc.q7_reaction}.`,
-      pc.q8_behavior         && `Behavior: ${pc.q8_behavior}.`,
-      pc.q9_pattern_sentence && `Pattern: "${pc.q9_pattern_sentence}".`,
-    ].filter(Boolean).join('\n'),
-    aftermath: [
-      pc.q10_outcome  && `Outcome: ${pc.q10_outcome}.`,
-      pc.q11_aftermath && `Aftermath: ${pc.q11_aftermath}.`,
-    ].filter(Boolean).join('\n'),
-    coaching_note: '',
-    released: false,
-  }
+// Returns a Set of athlete_ids who have already submitted the given administration
+export async function fetchCompletedAthleteIds(teamId, administration) {
+  const { data } = await supabase
+    .from('social_map_responses')
+    .select('athlete_id')
+    .eq('team_id', teamId)
+    .eq('administration', administration)
+  return new Set((data || []).map(r => r.athlete_id))
 }
 
-export async function submitAssessment({ athleteId, teamId, pc, sm }) {
-  // Save panic cycle
-  const { error: pcErr } = await supabase
-    .from('panic_cycle_responses')
-    .insert(pc)
-  if (pcErr) throw pcErr
+export async function submitAssessment({ athleteId, teamId, administration, questionSet, pc, sm }) {
+  // Admin 1 only: save panic cycle responses and mark roster complete
+  if (administration === 1) {
+    const { error: pcErr } = await supabase
+      .from('panic_cycle_responses')
+      .insert(pc)
+    if (pcErr) throw pcErr
+  }
 
-  // Save all social map rows
+  // Save social map rows (all administrations)
   const { error: smErr } = await supabase
     .from('social_map_responses')
     .insert(sm)
   if (smErr) throw smErr
 
-  // Mark athlete complete
-  const { error: rErr } = await supabase
-    .from('roster')
-    .update({ status: 'complete', completed_at: new Date().toISOString() })
-    .eq('id', athleteId)
-  if (rErr) throw rErr
+  // Admin 1 only: mark athlete complete on roster (drives panic cycle document flow)
+  if (administration === 1) {
+    const { error: rErr } = await supabase
+      .from('roster')
+      .update({ status: 'complete', completed_at: new Date().toISOString() })
+      .eq('id', athleteId)
+    if (rErr) throw rErr
+  }
 
-  // Auto-generate draft cycle document from responses
-  const doc = autoGenerateCycleDocument(pc)
-  const { error: docErr } = await supabase
-    .from('panic_cycle_documents')
-    .upsert(
-      { athlete_id: athleteId, team_id: teamId, ...doc, updated_at: new Date().toISOString() },
-      { onConflict: 'team_id,athlete_id' }
-    )
-  if (docErr) throw docErr
-
-  // Recalculate pulse scores
-  await recalculatePulseScores(teamId)
+  // Recalculate pulse scores for this administration
+  await recalculatePulseScores(teamId, administration)
 }
 
-async function recalculatePulseScores(teamId) {
+async function recalculatePulseScores(teamId, administration) {
   const { data: rows } = await supabase
     .from('social_map_responses')
     .select('question_type, nominee_1, nominee_2')
     .eq('team_id', teamId)
+    .eq('administration', administration)
 
   if (!rows?.length) return
 
@@ -123,6 +104,7 @@ async function recalculatePulseScores(teamId) {
     return {
       team_id: teamId,
       athlete_name: nm,
+      administration,
       positive_mentions: p,
       negative_mentions: n,
       social_role: role,
@@ -132,6 +114,6 @@ async function recalculatePulseScores(teamId) {
     }
   })
 
-  await supabase.from('pulse_report_scores').delete().eq('team_id', teamId)
+  await supabase.from('pulse_report_scores').delete().eq('team_id', teamId).eq('administration', administration)
   await supabase.from('pulse_report_scores').insert(upserts)
 }
