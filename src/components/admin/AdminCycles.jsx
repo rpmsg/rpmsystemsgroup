@@ -61,12 +61,13 @@ export default function AdminCycles() {
 
   function openEditor(athlete) {
     const doc = athlete.doc || {}
+    const r   = athlete.responses || {}
     setDraft({
-      trigger:       doc.trigger       || '',
-      emotions:      doc.emotions      || '',
-      body_response: doc.body_response || '',
-      behavior:      doc.behavior      || '',
-      aftermath:     doc.aftermath     || '',
+      trigger:       doc.trigger       || r.q1_trigger       || '',
+      emotions:      doc.emotions      || r.q3_emotions      || '',
+      body_response: doc.body_response || r.q6_body_response || '',
+      behavior:      doc.behavior      || r.q8_behavior      || '',
+      aftermath:     doc.aftermath     || r.q11_aftermath     || '',
       coaching_note: doc.coaching_note || '',
     })
     setSaveMsg('')
