@@ -43,6 +43,125 @@ function resolveOther(values, otherText) {
   return values.map(v => (v === 'Other' && otherText?.trim()) ? otherText.trim() : v)
 }
 
+function ProgressBar({ n, smOnly, TOTAL }) {
+  const displayN = smOnly ? n - 11 : n
+  const pct = Math.round((displayN / TOTAL) * 100)
+  return (
+    <div className="pm">
+      <div className="pml">Question {displayN} of {TOTAL}</div>
+      <div className="pt"><div className="pf" style={{ width: pct + '%' }} /></div>
+    </div>
+  )
+}
+
+function PCQuestion({ q, answers, otherTexts, error, smOnly, TOTAL, setText, setOtherText, toggleSingle, toggleMulti, navPC, donePC }) {
+  const sel = answers[q.id] || []
+  const otherSelected = sel.includes('Other')
+  const otherVal = otherTexts[q.id] || ''
+
+  return (
+    <div>
+      <ProgressBar n={q.n} smOnly={smOnly} TOTAL={TOTAL} />
+      <div className="qmeta">{q.meta}</div>
+      <div className="qt">{q.q}</div>
+      <div className="qs">{q.sub}</div>
+
+      {q.type === 'text' ? (
+        <textarea
+          placeholder={q.placeholder}
+          value={answers[q.id] || ''}
+          onChange={e => setText(q.id, e.target.value)}
+        />
+      ) : (
+        <>
+          <div className="choices">
+            {q.choices.map(c => {
+              const isSel = sel.includes(c)
+              return (
+                <div
+                  key={c}
+                  className={`choice${isSel ? ' sel' : ''}`}
+                  onClick={() => q.type === 'single' ? toggleSingle(q.id, c) : toggleMulti(q.id, c, q.max)}
+                >
+                  <span className="chk" />{c}
+                </div>
+              )
+            })}
+            <div
+              className={`choice${otherSelected ? ' sel' : ''}`}
+              onClick={() => q.type === 'single' ? toggleSingle(q.id, 'Other') : toggleMulti(q.id, 'Other', q.max)}
+            >
+              <span className="chk" />Other
+            </div>
+          </div>
+          {otherSelected && (
+            <textarea
+              placeholder="Please describe..."
+              value={otherVal}
+              onChange={e => setOtherText(q.id, e.target.value)}
+              style={{ marginTop: 8 }}
+            />
+          )}
+        </>
+      )}
+
+      {error && <div className="err" style={{ marginBottom: 8 }}>{error}</div>}
+
+      <div className="qnav">
+        {q.n === 11 ? (
+          <button className="btn bp" onClick={donePC}>Continue to Social Map →</button>
+        ) : (
+          <button className="btn bp" onClick={() => navPC(q.n + 1)}>Next →</button>
+        )}
+        {q.n > 1 && (
+          <button className="btn bo" onClick={() => navPC(q.n - 1)}>← Back</button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function SMQuestion({ q, smIndex, answers, roster, athleteName, error, smOnly, TOTAL, smQuestionsLength, submitting, toggleRoster, navSM, handleSubmit }) {
+  const sel = answers[q.id] || []
+  const others = roster.filter(nm => nm.toLowerCase() !== athleteName.toLowerCase())
+  return (
+    <div>
+      <ProgressBar n={q.n} smOnly={smOnly} TOTAL={TOTAL} />
+      <div className="qmeta">{q.meta}</div>
+      <div className="qt">{q.q}</div>
+      <div className="qs">{q.sub || 'Select up to 2 teammates.'}</div>
+      <div className="rg">
+        {others.map(nm => (
+          <div
+            key={nm}
+            className={`ri${sel.includes(nm) ? ' sel' : ''}`}
+            onClick={() => toggleRoster(q.id, nm)}
+          >
+            <div className="av">{initials(nm)}</div>
+            {nm}
+          </div>
+        ))}
+      </div>
+      {error && <div className="err" style={{ marginBottom: 8 }}>{error}</div>}
+      <div className="qnav">
+        {smIndex === smQuestionsLength - 1 ? (
+          <>
+            <button className="btn bp" onClick={handleSubmit} disabled={submitting}>
+              {submitting ? 'Submitting…' : 'Submit Assessment ✓'}
+            </button>
+            <button className="btn bo" onClick={() => navSM(q.n - 1)}>← Back</button>
+          </>
+        ) : (
+          <>
+            <button className="btn bp" onClick={() => navSM(q.n + 1)}>Next →</button>
+            {smIndex > 0 && <button className="btn bo" onClick={() => navSM(q.n - 1)}>← Back</button>}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function IntakeScreen({ team, athlete, onSubmitted }) {
   const goHome = useHome()
   const administration = team.current_administration || 1
@@ -248,130 +367,19 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
     { n: 22, label: 'Least Interaction' }, { n: 23, label: 'Hard to Communicate' },
   ]
 
-  // ── Sub-components ────────────────────────────────────────
-
-  function ProgressBar({ n }) {
-    const displayN = smOnly ? n - 11 : n
-    const pct = Math.round((displayN / TOTAL) * 100)
-    return (
-      <div className="pm">
-        <div className="pml">Question {displayN} of {TOTAL}</div>
-        <div className="pt"><div className="pf" style={{ width: pct + '%' }} /></div>
-      </div>
-    )
-  }
-
-  function PCQuestion({ q }) {
-    const sel = answers[q.id] || []
-    const otherSelected = sel.includes('Other')
-    const otherVal = otherTexts[q.id] || ''
-
-    return (
-      <div>
-        <ProgressBar n={q.n} />
-        <div className="qmeta">{q.meta}</div>
-        <div className="qt">{q.q}</div>
-        <div className="qs">{q.sub}</div>
-
-        {q.type === 'text' ? (
-          <textarea
-            placeholder={q.placeholder}
-            value={answers[q.id] || ''}
-            onChange={e => setText(q.id, e.target.value)}
-          />
-        ) : (
-          <>
-            <div className="choices">
-              {q.choices.map(c => {
-                const isSel = sel.includes(c)
-                return (
-                  <div
-                    key={c}
-                    className={`choice${isSel ? ' sel' : ''}`}
-                    onClick={() => q.type === 'single' ? toggleSingle(q.id, c) : toggleMulti(q.id, c, q.max)}
-                  >
-                    <span className="chk" />{c}
-                  </div>
-                )
-              })}
-              <div
-                className={`choice${otherSelected ? ' sel' : ''}`}
-                onClick={() => q.type === 'single' ? toggleSingle(q.id, 'Other') : toggleMulti(q.id, 'Other', q.max)}
-              >
-                <span className="chk" />Other
-              </div>
-            </div>
-            {otherSelected && (
-              <textarea
-                placeholder="Please describe..."
-                value={otherVal}
-                onChange={e => setOtherText(q.id, e.target.value)}
-                style={{ marginTop: 8 }}
-              />
-            )}
-          </>
-        )}
-
-        {error && <div className="err" style={{ marginBottom: 8 }}>{error}</div>}
-
-        <div className="qnav">
-          {q.n === 11 ? (
-            <button className="btn bp" onClick={donePC}>Continue to Social Map →</button>
-          ) : (
-            <button className="btn bp" onClick={() => navPC(q.n + 1)}>Next →</button>
-          )}
-          {q.n > 1 && (
-            <button className="btn bo" onClick={() => navPC(q.n - 1)}>← Back</button>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  function SMQuestion({ q, smIndex }) {
-    const sel = answers[q.id] || []
-    const others = roster.filter(nm => nm.toLowerCase() !== athlete.full_name.toLowerCase())
-    return (
-      <div>
-        <ProgressBar n={q.n} />
-        <div className="qmeta">{q.meta}</div>
-        <div className="qt">{q.q}</div>
-        <div className="qs">{q.sub || 'Select up to 2 teammates.'}</div>
-        <div className="rg">
-          {others.map(nm => (
-            <div
-              key={nm}
-              className={`ri${sel.includes(nm) ? ' sel' : ''}`}
-              onClick={() => toggleRoster(q.id, nm)}
-            >
-              <div className="av">{initials(nm)}</div>
-              {nm}
-            </div>
-          ))}
-        </div>
-        {error && <div className="err" style={{ marginBottom: 8 }}>{error}</div>}
-        <div className="qnav">
-          {smIndex === smQuestions.length - 1 ? (
-            <>
-              <button className="btn bp" onClick={handleSubmit} disabled={submitting}>
-                {submitting ? 'Submitting…' : 'Submit Assessment ✓'}
-              </button>
-              <button className="btn bo" onClick={() => navSM(q.n - 1)}>← Back</button>
-            </>
-          ) : (
-            <>
-              <button className="btn bp" onClick={() => navSM(q.n + 1)}>Next →</button>
-              {smIndex > 0 && <button className="btn bo" onClick={() => navSM(q.n - 1)}>← Back</button>}
-            </>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  // ── Main render ───────────────────────────────────────────
-
   const adminLabel = ADMIN_LABELS[administration] || ADMIN_LABELS[1]
+
+  // ── Shared props for question components ──────────────────
+
+  const progressProps = { smOnly, TOTAL }
+  const pcProps = {
+    answers, otherTexts, error, smOnly, TOTAL,
+    setText, setOtherText, toggleSingle, toggleMulti, navPC, donePC,
+  }
+  const smProps = {
+    answers, roster, athleteName: athlete.full_name, error, smOnly, TOTAL,
+    smQuestionsLength: smQuestions.length, submitting, toggleRoster, navSM, handleSubmit,
+  }
 
   return (
     <>
@@ -420,8 +428,12 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
             </div>
           )}
           {!smOnly && loadingQ && step === 'brk-start' && <div className="spinner" />}
-          {!smOnly && typeof step === 'number' && step >= 1  && step <= 11 && <PCQuestion q={pcQuestions[step - 1]} />}
-          {typeof step === 'number' && step >= 12 && step <= 23 && <SMQuestion q={smQuestions[step - 12]} smIndex={step - 12} />}
+          {!smOnly && typeof step === 'number' && step >= 1  && step <= 11 && (
+            <PCQuestion q={pcQuestions[step - 1]} {...pcProps} />
+          )}
+          {typeof step === 'number' && step >= 12 && step <= 23 && (
+            <SMQuestion q={smQuestions[step - 12]} smIndex={step - 12} {...smProps} />
+          )}
         </div>
       </div>
     </>
