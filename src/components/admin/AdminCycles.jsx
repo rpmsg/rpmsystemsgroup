@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { fetchAllTeams, fetchCycleStatus, upsertCycleDocument, releaseCycleDocument, unreleaseCycleDocument } from '../../lib/adminApi'
+import { fetchAllTeams, fetchCycleStatus } from '../../lib/adminApi'
+import { upsertCycleDocument, releaseCycleDocument, unreleaseCycleDocument } from '../../lib/cycleApi'
 
 const RAW_LABELS = [
   ['q1_trigger',          'Trigger Situation'],

@@ -135,32 +135,6 @@ export async function fetchCycleStatus(teamId) {
   }))
 }
 
-export async function upsertCycleDocument(athleteId, teamId, fields) {
-  const { error } = await supabase
-    .from('panic_cycle_documents')
-    .upsert(
-      { athlete_id: athleteId, team_id: teamId, ...fields, updated_at: new Date().toISOString() },
-      { onConflict: 'team_id,athlete_id' }
-    )
-  if (error) throw error
-}
-
-export async function releaseCycleDocument(athleteId, teamId) {
-  const { error } = await supabase
-    .from('panic_cycle_documents')
-    .update({ released: true, released_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-    .eq('athlete_id', athleteId).eq('team_id', teamId)
-  if (error) throw error
-}
-
-export async function unreleaseCycleDocument(athleteId, teamId) {
-  const { error } = await supabase
-    .from('panic_cycle_documents')
-    .update({ released: false, released_at: null, updated_at: new Date().toISOString() })
-    .eq('athlete_id', athleteId).eq('team_id', teamId)
-  if (error) throw error
-}
-
 // ── Social Map Administration ─────────────────────────────────
 export async function fetchSocialMapAdminStatus() {
   const [teamsRes, responsesRes] = await Promise.all([
