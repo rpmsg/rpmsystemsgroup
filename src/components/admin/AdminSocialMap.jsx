@@ -1,11 +1,6 @@
 import { useState, useEffect } from 'react'
 import { fetchSocialMapAdminStatus, advanceAdministration } from '../../lib/adminApi'
-
-const ADMIN_INFO = {
-  1: { label: 'Administration 1', sub: 'Start of Season', set: 'Question Set 1' },
-  2: { label: 'Administration 2', sub: 'Mid Season',      set: 'Question Set 2' },
-  3: { label: 'Administration 3', sub: 'End of Season',   set: 'Question Set 1' },
-}
+import { ADMIN_INFO } from '../../constants'
 
 export default function AdminSocialMap() {
   const [teams, setTeams]       = useState([])

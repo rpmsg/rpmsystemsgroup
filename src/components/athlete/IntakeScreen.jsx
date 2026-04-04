@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { PC_QUESTIONS, SM_QUESTIONS, SM_QUESTIONS_SET2 } from './questions'
 import { fetchRosterNames, fetchCustomQuestions, submitAssessment } from '../../lib/athleteApi'
 import { useHome } from '../../HomeContext'
+import { ADMIN_LABELS } from '../../constants'
 
 function mergeQuestions(defaults, overrides) {
   const map = {}
@@ -370,9 +371,7 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
 
   // ── Main render ───────────────────────────────────────────
 
-  const adminLabel = administration === 1 ? 'Administration 1 — Start of Season'
-                   : administration === 2 ? 'Administration 2 — Mid Season'
-                   : 'Administration 3 — End of Season'
+  const adminLabel = ADMIN_LABELS[administration] || ADMIN_LABELS[1]
 
   return (
     <>

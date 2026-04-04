@@ -4,30 +4,7 @@ import {
   Tooltip, ReferenceLine, ResponsiveContainer, Cell,
   BarChart, Bar, LabelList, Legend
 } from 'recharts'
-
-const ROLE_COLORS = {
-  'Core Influencer':   '#43B878',
-  'Rejection Risk':    '#e05a4a',
-  'Isolation Risk':    '#9090ff',
-  'Polarizing Figure': '#f0b030',
-}
-const ROLE_KEY = {
-  'Core Influencer':   'inf',
-  'Rejection Risk':    'rej',
-  'Isolation Risk':    'iso',
-  'Polarizing Figure': 'pol',
-}
-
-const ADMIN_LABELS = {
-  1: 'Admin 1 — Start',
-  2: 'Admin 2 — Mid',
-  3: 'Admin 3 — End',
-}
-const ADMIN_FULL_LABELS = {
-  1: 'Administration 1 — Start of Season (Set 1)',
-  2: 'Administration 2 — Mid Season (Set 2)',
-  3: 'Administration 3 — End of Season (Set 1)',
-}
+import { ROLE_COLORS, ROLE_KEYS, ADMIN_LABELS_SHORT, ADMIN_LABELS_FULL } from '../../constants'
 
 // ── Scatter label ─────────────────────────────────────────────
 function ScatterLabel({ cx, cy, payload }) {
@@ -47,7 +24,7 @@ function buildGroups(scores, numGroups) {
     pol: scores.filter(s => s.social_role === 'Polarizing Figure'),
     iso: scores.filter(s => s.social_role === 'Isolation Risk'),
     rr:  scores.filter(s => s.social_role === 'Rejection Risk').sort((a, b) => b.negative_mentions - a.negative_mentions),
-    std: scores.filter(s => !s.social_role || !ROLE_KEY[s.social_role]),
+    std: scores.filter(s => !s.social_role || !ROLE_KEYS[s.social_role]),
   }
 
   const groups = Array.from({ length: numGroups }, (_, i) => ({ id: i + 1, players: [] }))
@@ -287,7 +264,7 @@ export default function PulseReportModal({ team, scores: defaultScores, scoresBy
                   style={{ background: 'var(--d4)', color: 'var(--w)', border: '1px solid var(--bdr)', borderRadius: 4, padding: '3px 8px', fontSize: 11 }}
                 >
                   {availableAdmins.map(n => (
-                    <option key={n} value={n}>{ADMIN_LABELS[n]}</option>
+                    <option key={n} value={n}>{ADMIN_LABELS_SHORT[n]}</option>
                   ))}
                 </select>
               </div>
@@ -300,7 +277,7 @@ export default function PulseReportModal({ team, scores: defaultScores, scoresBy
                   onChange={e => setCompareA(Number(e.target.value))}
                   style={{ background: 'var(--d4)', color: 'var(--w)', border: '1px solid var(--bdr)', borderRadius: 4, padding: '3px 8px', fontSize: 11 }}
                 >
-                  {availableAdmins.map(n => <option key={n} value={n}>{ADMIN_LABELS[n]}</option>)}
+                  {availableAdmins.map(n => <option key={n} value={n}>{ADMIN_LABELS_SHORT[n]}</option>)}
                 </select>
                 <span style={{ fontSize: 11, color: 'var(--mid)' }}>vs</span>
                 <select
@@ -308,7 +285,7 @@ export default function PulseReportModal({ team, scores: defaultScores, scoresBy
                   onChange={e => setCompareB(Number(e.target.value))}
                   style={{ background: 'var(--d4)', color: 'var(--w)', border: '1px solid var(--bdr)', borderRadius: 4, padding: '3px 8px', fontSize: 11 }}
                 >
-                  {availableAdmins.map(n => <option key={n} value={n}>{ADMIN_LABELS[n]}</option>)}
+                  {availableAdmins.map(n => <option key={n} value={n}>{ADMIN_LABELS_SHORT[n]}</option>)}
                 </select>
               </div>
             )}
@@ -327,7 +304,7 @@ export default function PulseReportModal({ team, scores: defaultScores, scoresBy
                     Executive Summary
                     {availableAdmins?.length > 0 && (
                       <span style={{ fontSize: 10, color: 'var(--mid)', marginLeft: 8, fontWeight: 400 }}>
-                        {ADMIN_FULL_LABELS[selectedAdmin]}
+                        {ADMIN_LABELS_FULL[selectedAdmin]}
                       </span>
                     )}
                   </div>
@@ -565,7 +542,7 @@ export default function PulseReportModal({ team, scores: defaultScores, scoresBy
                       <div style={{ fontSize: 11, color: 'var(--mid)', marginBottom: 16 }}>
                         {compareA === 1 && compareB === 3
                           ? 'Start vs. End of season — identical question sets.'
-                          : `${ADMIN_LABELS[compareA]} vs ${ADMIN_LABELS[compareB]}`}
+                          : `${ADMIN_LABELS_SHORT[compareA]} vs ${ADMIN_LABELS_SHORT[compareB]}`}
                       </div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
@@ -590,7 +567,7 @@ export default function PulseReportModal({ team, scores: defaultScores, scoresBy
                                 <span style={{ fontSize: 16, fontWeight: 700, color: improved ? '#43B878' : m.b !== m.a ? '#e05a4a' : 'var(--mid)' }}>{m.format(m.b)}</span>
                               </div>
                               <div style={{ fontSize: 9, color: 'var(--mid)', marginTop: 4 }}>
-                                {ADMIN_LABELS[compareA]} → {ADMIN_LABELS[compareB]}
+                                {ADMIN_LABELS_SHORT[compareA]} → {ADMIN_LABELS_SHORT[compareB]}
                               </div>
                             </div>
                           )
@@ -610,9 +587,9 @@ export default function PulseReportModal({ team, scores: defaultScores, scoresBy
                           <thead>
                             <tr style={{ borderBottom: '1px solid var(--bdr)' }}>
                               <th style={{ textAlign: 'left', padding: '6px 8px', color: 'var(--mid)', fontWeight: 600 }}>Athlete</th>
-                              <th style={{ textAlign: 'center', padding: '6px 8px', color: 'var(--mid)', fontWeight: 600 }} colSpan={3}>{ADMIN_LABELS[compareA]}</th>
+                              <th style={{ textAlign: 'center', padding: '6px 8px', color: 'var(--mid)', fontWeight: 600 }} colSpan={3}>{ADMIN_LABELS_SHORT[compareA]}</th>
                               <th style={{ padding: '6px 4px' }} />
-                              <th style={{ textAlign: 'center', padding: '6px 8px', color: 'var(--mid)', fontWeight: 600 }} colSpan={3}>{ADMIN_LABELS[compareB]}</th>
+                              <th style={{ textAlign: 'center', padding: '6px 8px', color: 'var(--mid)', fontWeight: 600 }} colSpan={3}>{ADMIN_LABELS_SHORT[compareB]}</th>
                             </tr>
                             <tr style={{ borderBottom: '1px solid var(--bdr)' }}>
                               <th style={{ padding: '4px 8px' }} />

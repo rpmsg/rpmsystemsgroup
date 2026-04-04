@@ -1,11 +1,10 @@
 import { useHome } from '../../HomeContext'
+import { ADMIN_LABELS } from '../../constants'
 
 export default function ConfirmScreen({ team, athlete, pc, onHome }) {
   const goHome = useHome()
   const smOnly = (team.current_administration || 1) > 1
-  const adminLabel = team.current_administration === 2 ? 'Administration 2 — Mid Season'
-                   : team.current_administration === 3 ? 'Administration 3 — End of Season'
-                   : 'Administration 1 — Start of Season'
+  const adminLabel = ADMIN_LABELS[team.current_administration] || ADMIN_LABELS[1]
 
   return (
     <>

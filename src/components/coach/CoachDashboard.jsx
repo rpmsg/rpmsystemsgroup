@@ -5,17 +5,11 @@ import ChangePasswordModal from './ChangePasswordModal'
 import AthleteModal from './AthleteModal'
 import { useHome } from '../../HomeContext'
 import PulseReportModal from './PulseReportModal'
+import { ROLE_KEYS } from '../../constants'
 
 // Strip leading initials from old portal bug e.g. "CCCarmen Cline" → "Carmen Cline"
 function normalizeName(name) {
   return name.replace(/^[A-Z]{2,4}(?=[A-Z][a-z])/, '')
-}
-
-const ROLE_MAP = {
-  'Core Influencer':   { key: 'inf', label: 'Core Influencer' },
-  'Rejection Risk':    { key: 'rej', label: 'Rejection Risk' },
-  'Isolation Risk':    { key: 'iso', label: 'Isolation Risk' },
-  'Polarizing Figure': { key: 'pol', label: 'Polarizing Figure' },
 }
 
 function tally(rows, field, total) {
@@ -192,7 +186,7 @@ export default function CoachDashboard({ coach, onSignOut }) {
               ) : roster.map(a => {
                 const score = scores.find(s => s.athlete_name === a.full_name)
                 const neg   = score?.negative_mentions || 0
-                const role  = ROLE_MAP[score?.social_role]
+                const roleKey = ROLE_KEYS[score?.social_role]
                 const nc    = neg >= 10 ? 'var(--rl)' : neg >= 5 ? '#f0b030' : 'var(--mid)'
                 const done  = a.status === 'complete'
                 return (
@@ -211,8 +205,8 @@ export default function CoachDashboard({ coach, onSignOut }) {
                       </span>
                     </div>
                     <div>
-                      <span className={`rtag ${role?.key || 'non'}`}>
-                        {role?.label || '—'}
+                      <span className={`rtag ${roleKey || 'non'}`}>
+                        {score?.social_role || '—'}
                       </span>
                     </div>
                     <div style={{ color: nc, fontSize: 11, fontWeight: 600 }}>
