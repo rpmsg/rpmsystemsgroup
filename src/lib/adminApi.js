@@ -165,7 +165,7 @@ export async function unreleaseCycleDocument(athleteId, teamId) {
 export async function fetchSocialMapAdminStatus() {
   const [teamsRes, responsesRes] = await Promise.all([
     supabase.from('teams').select('id, name, current_administration').order('name'),
-    supabase.from('social_map_responses').select('team_id, administration, athlete_id'),
+    supabase.from('social_map_responses').select('team_id, administration, athlete_id').limit(10000),
   ])
   if (teamsRes.error) throw teamsRes.error
 
