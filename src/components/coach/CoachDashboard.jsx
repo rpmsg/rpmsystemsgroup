@@ -107,23 +107,25 @@ export default function CoachDashboard({ coach, onSignOut }) {
   const aftermaths = tally(panic, 'q11_aftermath', panicTotal)
   const panicBars  = [...behaviors, ...aftermaths].slice(0, 6)
   const insights   = [
-    triggers[0]   && { color: 'r', text: `<strong>${triggers[0].pct}%</strong> of athletes trigger on: ${triggers[0].label}` },
-    behaviors[0]  && { color: 'r', text: `<strong>${behaviors[0].pct}%</strong> primary behavioral response: ${behaviors[0].label.toLowerCase()}` },
-    aftermaths[0] && { color: 'b', text: `<strong>${aftermaths[0].pct}%</strong> aftermath pattern: ${aftermaths[0].label.toLowerCase()}` },
-    triggers[1]   && { color: 'y', text: `<strong>${triggers[1].pct}%</strong> secondary trigger: ${triggers[1].label.toLowerCase()}` },
+    triggers[0]   && { color: 'r', bold: `${triggers[0].pct}%`,   text: ` of athletes trigger on: ${triggers[0].label}` },
+    behaviors[0]  && { color: 'r', bold: `${behaviors[0].pct}%`,  text: ` primary behavioral response: ${behaviors[0].label.toLowerCase()}` },
+    aftermaths[0] && { color: 'b', bold: `${aftermaths[0].pct}%`, text: ` aftermath pattern: ${aftermaths[0].label.toLowerCase()}` },
+    triggers[1]   && { color: 'y', bold: `${triggers[1].pct}%`,   text: ` secondary trigger: ${triggers[1].label.toLowerCase()}` },
   ].filter(Boolean)
 
   const sortedNeg = [...scores].sort((a, b) => b.negative_mentions - a.negative_mentions)
   const suggestions = []
   if (sortedNeg[0]?.negative_mentions > 0)
-    suggestions.push({ i: '⚠️', t: `<strong>${sortedNeg[0].athlete_name}</strong> — Friction score is a significant outlier (−${sortedNeg[0].negative_mentions}). Consider a private 1:1 conversation before drawing conclusions.` })
-  if (sortedNeg[1]?.negative_mentions > 0)
-    suggestions.push({ i: '🔍', t: `<strong>${sortedNeg[1].athlete_name}${sortedNeg[2]?.negative_mentions > 0 ? ' &amp; ' + sortedNeg[2].athlete_name : ''}</strong> — Elevated friction with limited peer support. Understanding the source may reveal fixable dynamics.` })
+    suggestions.push({ i: '⚠️', bold: sortedNeg[0].athlete_name, text: ` — Friction score is a significant outlier (−${sortedNeg[0].negative_mentions}). Consider a private 1:1 conversation before drawing conclusions.` })
+  if (sortedNeg[1]?.negative_mentions > 0) {
+    const names = sortedNeg[1].athlete_name + (sortedNeg[2]?.negative_mentions > 0 ? ' & ' + sortedNeg[2].athlete_name : '')
+    suggestions.push({ i: '🔍', bold: names, text: ` — Elevated friction with limited peer support. Understanding the source may reveal fixable dynamics.` })
+  }
   const isoCount = scores.filter(s => s.social_role === 'Isolation Risk').length
   if (isoCount > 0)
-    suggestions.push({ i: '🔗', t: `<strong>${isoCount} Isolation Risk player${isoCount > 1 ? 's' : ''}</strong> — Intentional grouping with Core Influencers in training and travel may help build connection naturally.` })
+    suggestions.push({ i: '🔗', bold: `${isoCount} Isolation Risk player${isoCount > 1 ? 's' : ''}`, text: ` — Intentional grouping with Core Influencers in training and travel may help build connection naturally.` })
   if (!suggestions.length)
-    suggestions.push({ i: '✅', t: '<strong>No significant friction patterns detected.</strong> Team dynamics look healthy based on current data.' })
+    suggestions.push({ i: '✅', bold: 'No significant friction patterns detected.', text: ' Team dynamics look healthy based on current data.' })
 
   const RISK_ZONES = [
     { t: '🟢 CORE INFLUENCERS',   c: 'g', d: 'High support, low friction',  role: 'Core Influencer'   },
@@ -307,7 +309,7 @@ export default function CoachDashboard({ coach, onSignOut }) {
                         {insights.map((ins, i) => (
                           <div className="pp-ins-item" key={i}>
                             <div className={`pp-ins-dot ${ins.color}`} />
-                            <span className="pp-ins-txt" dangerouslySetInnerHTML={{ __html: ins.text }} />
+                            <span className="pp-ins-txt"><strong>{ins.bold}</strong>{ins.text}</span>
                           </div>
                         ))}
                       </div>
@@ -321,7 +323,7 @@ export default function CoachDashboard({ coach, onSignOut }) {
                 {suggestions.map((s, i) => (
                   <div className="si" key={i}>
                     <span className="sico">{s.i}</span>
-                    <p className="stxt" dangerouslySetInnerHTML={{ __html: s.t }} />
+                    <p className="stxt"><strong>{s.bold}</strong>{s.text}</p>
                   </div>
                 ))}
               </div>
