@@ -8,7 +8,7 @@ export async function fetchCustomQuestions() {
 export async function lookupTeamCode(code) {
   const { data, error } = await supabase
     .from('teams')
-    .select('id, name, team_code, current_administration')
+    .select('id, name, team_code, current_administration, wellness_reset_day')
     .eq('team_code', code.toUpperCase())
     .eq('status', 'active')
   if (error) throw error

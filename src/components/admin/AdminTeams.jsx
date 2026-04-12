@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { fetchAllTeams, createTeam, updateTeam, deleteTeam } from '../../lib/adminApi'
 
-const EMPTY = { name: '', team_code: '', season: '' }
+const EMPTY = { name: '', team_code: '', season: '', wellness_reset_day: 1 }
 
 export default function AdminTeams() {
   const [teams, setTeams]     = useState([])
@@ -29,7 +29,7 @@ export default function AdminTeams() {
   }
 
   function openEdit(team) {
-    setForm({ name: team.name, team_code: team.team_code, season: team.season || '' })
+    setForm({ name: team.name, team_code: team.team_code, season: team.season || '', wellness_reset_day: team.wellness_reset_day ?? 1 })
     setEditId(team.id)
     setError('')
     setModal('edit')
@@ -45,7 +45,7 @@ export default function AdminTeams() {
       if (modal === 'add') {
         await createTeam(form)
       } else {
-        await updateTeam(editId, { name: form.name.trim(), team_code: form.team_code.trim(), season: form.season.trim() })
+        await updateTeam(editId, { name: form.name.trim(), team_code: form.team_code.trim(), season: form.season.trim(), wellness_reset_day: Number(form.wellness_reset_day) })
       }
       await load()
       closeModal()
@@ -120,6 +120,14 @@ export default function AdminTeams() {
             <div className="fld">
               <label>Season</label>
               <input value={form.season} onChange={e => setForm(f => ({ ...f, season: e.target.value }))} placeholder="e.g. 2025–26" />
+            </div>
+            <div className="fld">
+              <label>Wellness Check-In Day</label>
+              <select value={form.wellness_reset_day} onChange={e => setForm(f => ({ ...f, wellness_reset_day: Number(e.target.value) }))}>
+                {['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((d,i) => (
+                  <option key={i} value={i}>{d}</option>
+                ))}
+              </select>
             </div>
             {error && <div className="err">{error}</div>}
           </div>

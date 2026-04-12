@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { fetchDashboardData, changePassword } from '../../lib/coachApi'
+import WellnessTab from './WellnessTab'
 import ChangePasswordModal from './ChangePasswordModal'
 import AthleteModal from './AthleteModal'
 import { useHome } from '../../HomeContext'
@@ -34,6 +35,7 @@ export default function CoachDashboard({ coach, onSignOut }) {
   const [showPassModal, setShowPassModal]     = useState(coach.must_change_password)
   const [selectedAthlete, setSelectedAthlete] = useState(null)
   const [showPulseReport, setShowPulseReport] = useState(false)
+  const [activeTab, setActiveTab]             = useState('dashboard')
 
   useEffect(() => {
     fetchDashboardData(coach.team_id)
@@ -160,7 +162,22 @@ export default function CoachDashboard({ coach, onSignOut }) {
             <p>Pulse Report · Code: {team.team_code}</p>
           </div>
 
-          <div className="stats">
+          {/* ── Tabs ── */}
+          <div style={{display:'flex',gap:6,padding:'0 0 20px',borderBottom:'1px solid var(--bdr)',marginBottom:20}}>
+            {['dashboard','wellness'].map(tab => (
+              <button key={tab} onClick={() => setActiveTab(tab)} style={{
+                padding:'5px 14px',borderRadius:4,fontSize:11,cursor:'pointer',
+                border:'1px solid var(--bdr)',
+                background: activeTab === tab ? 'var(--g)' : 'var(--d4)',
+                color: activeTab === tab ? '#fff' : 'var(--mid)',
+              }}>
+                {tab === 'dashboard' ? 'Dashboard' : '💚 Wellness'}
+              </button>
+            ))}
+          </div>
+
+          {activeTab === 'wellness' && <WellnessTab teamId={team.id} roster={roster} />}
+          {activeTab === 'dashboard' && <div className="stats">
             <div className="stat"><div className="sv g">{complete}</div><div className="sl">Complete</div></div>
             <div className="stat"><div className="sv">{pending}</div><div className="sl">Pending</div></div>
             <div className="stat"><div className="sv g">{coreInf}</div><div className="sl">Core Influencers</div></div>
@@ -324,6 +341,7 @@ export default function CoachDashboard({ coach, onSignOut }) {
               </div>
             </>
           )}
+          </div>}
         </div>
       </div>
 

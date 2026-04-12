@@ -44,10 +44,10 @@ export async function fetchAllTeams() {
   return data || []
 }
 
-export async function createTeam({ name, team_code, season }) {
+export async function createTeam({ name, team_code, season, wellness_reset_day }) {
   const { error } = await supabase
     .from('teams')
-    .insert({ name: name.trim(), team_code: team_code.trim().toUpperCase(), season: season.trim(), status: 'active' })
+    .insert({ name: name.trim(), team_code: team_code.trim().toUpperCase(), season: season.trim(), status: 'active', wellness_reset_day: wellness_reset_day ?? 1 })
   if (error) throw error
 }
 

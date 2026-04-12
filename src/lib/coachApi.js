@@ -52,7 +52,7 @@ export async function changePassword(coachEmail, currentPass, newPass, forced) {
 
 export async function fetchDashboardData(teamId) {
   const [teamRes, rosterRes, scoresRes, panicRes, nominationsRes] = await Promise.all([
-    supabase.from('teams').select('id, name, team_code, season, current_administration').eq('id', teamId).single(),
+    supabase.from('teams').select('id, name, team_code, season, current_administration, wellness_reset_day').eq('id', teamId).single(),
     supabase.from('roster').select('id, full_name, status').eq('team_id', teamId).order('full_name'),
     supabase.from('pulse_report_scores').select('athlete_name, positive_mentions, negative_mentions, social_role, administration').eq('team_id', teamId).order('positive_mentions', { ascending: false }),
     supabase.from('panic_cycle_responses').select('q1_trigger, q7_reaction, q8_behavior, q11_aftermath').eq('team_id', teamId),
