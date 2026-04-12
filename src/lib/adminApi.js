@@ -62,6 +62,14 @@ export async function deleteTeam(id) {
   if (error) throw error
 }
 
+// ── Coach auth helper (calls edge function) ───────────────────
+async function invokeCoachAuth(action, payload) {
+  const { error } = await supabase.functions.invoke('manage-coach-auth', {
+    body: { action, ...payload },
+  })
+  if (error) throw new Error(error.message || 'Auth sync failed')
+}
+
 // ── Coaches ───────────────────────────────────────────────────
 export async function fetchAllCoaches() {
   const { data, error } = await supabase
@@ -73,21 +81,40 @@ export async function fetchAllCoaches() {
 }
 
 export async function createCoach({ full_name, email, password, team_id }) {
+  const normalizedEmail = email.trim().toLowerCase()
+  // Create auth account first — abort if it fails so DB stays clean
+  await invokeCoachAuth('create', { email: normalizedEmail, password })
   const { error } = await supabase
     .from('coaches')
-    .insert({ full_name: full_name.trim(), email: email.trim().toLowerCase(), password, team_id: team_id || null, must_change_password: true })
+    .insert({ full_name: full_name.trim(), email: normalizedEmail, password, team_id: team_id || null, must_change_password: true })
   if (error) throw error
 }
 
 export async function updateCoach(id, fields) {
   if (fields.email) fields.email = fields.email.trim().toLowerCase()
+  // If email or password is changing, sync the auth account
+  if (fields.email || fields.password) {
+    const { data: current } = await supabase.from('coaches').select('email').eq('id', id).single()
+    if (current) {
+      await invokeCoachAuth('update', {
+        email: current.email,
+        newEmail: fields.email,
+        newPassword: fields.password,
+      })
+    }
+  }
   const { error } = await supabase.from('coaches').update(fields).eq('id', id)
   if (error) throw error
 }
 
 export async function deleteCoach(id) {
+  const { data: coach } = await supabase.from('coaches').select('email').eq('id', id).single()
   const { error } = await supabase.from('coaches').delete().eq('id', id)
   if (error) throw error
+  // Best-effort auth cleanup — don't block if auth user is already gone
+  if (coach?.email) {
+    try { await invokeCoachAuth('delete', { email: coach.email }) } catch {}
+  }
 }
 
 // ── Roster ────────────────────────────────────────────────────
