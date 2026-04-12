@@ -177,7 +177,7 @@ export default function CoachDashboard({ coach, onSignOut }) {
           </div>
 
           {activeTab === 'wellness' && <WellnessTab teamId={team.id} roster={roster} />}
-          {activeTab === 'dashboard' && <div className="stats">
+          {activeTab === 'dashboard' && <><div className="stats">
             <div className="stat"><div className="sv g">{complete}</div><div className="sl">Complete</div></div>
             <div className="stat"><div className="sv">{pending}</div><div className="sl">Pending</div></div>
             <div className="stat"><div className="sv g">{coreInf}</div><div className="sl">Core Influencers</div></div>
@@ -341,7 +341,7 @@ export default function CoachDashboard({ coach, onSignOut }) {
               </div>
             </>
           )}
-          </div>}
+          </>}
         </div>
       </div>
 

@@ -68,7 +68,7 @@ export default function WellnessScreen({ athlete, team, onBack, onSubmitted }) {
     </nav>
   )
 
-  if (checking) return <><{navBar}/><div className="cw"><div className="spinner" /></div></>
+  if (checking) return <>{navBar}<div className="cw"><div className="spinner" /></div></>
 
   if (windowClosed) return (
     <>{navBar}
