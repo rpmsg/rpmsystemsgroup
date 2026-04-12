@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { fetchDashboardData, changePassword } from '../../lib/coachApi'
-import { supabase } from '../../lib/supabase'
 import ChangePasswordModal from './ChangePasswordModal'
 import AthleteModal from './AthleteModal'
 import { useHome } from '../../HomeContext'
@@ -44,11 +43,7 @@ export default function CoachDashboard({ coach, onSignOut }) {
   }, [coach.team_id])
 
   async function handleChangePassword(currentPass, newPass, forced) {
-    if (!forced) {
-      const { data: rows } = await supabase.from('coaches').select('password').eq('id', coach.id)
-      if (!rows?.[0] || rows[0].password !== currentPass) throw new Error('Current password is incorrect.')
-    }
-    await changePassword(coach.id, newPass)
+    await changePassword(coach.email, currentPass, newPass, forced)
   }
 
   if (loading) return (

@@ -1,22 +1,53 @@
 import { supabase } from './supabase'
 
 export async function coachLogin(email, password) {
+  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    email: email.trim().toLowerCase(),
+    password,
+  })
+  if (authError || !authData.session) return null
+
   const { data, error } = await supabase
     .from('coaches')
-    .select('id, full_name, team_id, password, must_change_password')
+    .select('id, full_name, team_id, must_change_password, email')
     .eq('email', email.trim().toLowerCase())
-  if (error) throw error
-  const coach = data?.[0]
-  if (!coach || coach.password !== password) return null
-  return coach
+    .single()
+  if (error || !data) return null
+  return data
 }
 
-export async function changePassword(coachId, newPassword) {
-  const { error } = await supabase
+export async function coachLogout() {
+  await supabase.auth.signOut()
+}
+
+export async function getCoachSession() {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return null
+
+  const { data, error } = await supabase
     .from('coaches')
-    .update({ password: newPassword, must_change_password: false })
-    .eq('id', coachId)
-  if (error) throw error
+    .select('id, full_name, team_id, must_change_password, email')
+    .eq('email', session.user.email)
+    .single()
+  if (error || !data) return null
+  return data
+}
+
+export async function changePassword(coachEmail, currentPass, newPass, forced) {
+  if (!forced) {
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: coachEmail,
+      password: currentPass,
+    })
+    if (verifyError) throw new Error('Current password is incorrect.')
+  }
+  const { error: updateError } = await supabase.auth.updateUser({ password: newPass })
+  if (updateError) throw updateError
+  const { error: dbError } = await supabase
+    .from('coaches')
+    .update({ must_change_password: false })
+    .eq('email', coachEmail)
+  if (dbError) throw dbError
 }
 
 export async function fetchDashboardData(teamId) {

@@ -37,7 +37,7 @@ export default function AdminLogin({ onLogin, onBack }) {
           <p>Enter your administrator credentials to continue.</p>
           <form onSubmit={handleSubmit}>
             <div className="fld">
-              <label>Username</label>
+              <label>Email</label>
               <input value={username} onChange={e => setUsername(e.target.value)} autoFocus />
             </div>
             <div className="fld">

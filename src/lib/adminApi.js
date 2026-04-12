@@ -1,14 +1,37 @@
 import { supabase } from './supabase'
 
 // ── Auth ──────────────────────────────────────────────────────
-export async function adminLogin(username, password) {
+export async function adminLogin(email, password) {
+  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    email: email.trim().toLowerCase(),
+    password,
+  })
+  if (authError || !authData.session) return null
+
   const { data, error } = await supabase
     .from('admins')
     .select('*')
-    .eq('email', username)
-    .eq('password', password)
-  if (error) throw error
-  return data?.[0] || null
+    .eq('email', email.trim().toLowerCase())
+    .single()
+  if (error || !data) return null
+  return data
+}
+
+export async function adminLogout() {
+  await supabase.auth.signOut()
+}
+
+export async function getAdminSession() {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return null
+
+  const { data, error } = await supabase
+    .from('admins')
+    .select('*')
+    .eq('email', session.user.email)
+    .single()
+  if (error || !data) return null
+  return data
 }
 
 // ── Teams ─────────────────────────────────────────────────────
