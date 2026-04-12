@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react'
 import { fetchTeamWellnessCheckins } from '../../lib/wellnessApi'
 
-function scoreColor(n) {
+const MENTAL_LABELS = { 1: '🔴', 2: '😤', 3: '😐', 4: '🎯', 5: '🟢' }
+const MENTAL_TEXT   = { 1: 'Spinning', 2: 'Fighting It', 3: 'Steady', 4: 'Dialed In', 5: 'Clear Headed' }
+
+function mentalColor(n) {
+  return n >= 4 ? '#43B878' : n === 3 ? '#f0b030' : '#e05a4a'
+}
+function physColor(n) {
   return n >= 7 ? '#43B878' : n >= 4 ? '#f0b030' : '#e05a4a'
 }
 
@@ -35,11 +41,11 @@ export default function WellnessTab({ teamId, roster }) {
     if (!c) return
     const first = a.full_name.split(' ')[0]
     const dateStr = new Date(latestWeek + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    if (c.mental_score <= 3) {
+    if (c.mental_score <= 2) {
       flags.push({
         icon: '🧠',
         label: `Mental — ${a.full_name} · ${dateStr}`,
-        text: `${first} rated mental wellness ${c.mental_score}/10. Recommended: Schedule a private 1:1 before next session. Use open-ended questions. Do not address in a group setting.`,
+        text: `${first} checked in as "${MENTAL_TEXT[c.mental_score]}" (${c.mental_score}/5). Recommended: Schedule a private 1:1 before next session. Use open-ended questions. Do not address in a group setting.`,
       })
     }
     if (c.physical_score <= 3) {
@@ -94,10 +100,10 @@ export default function WellnessTab({ teamId, roster }) {
                       {c ? (
                         <div style={{display:'inline-flex',flexDirection:'column',alignItems:'center',gap:2}}>
                           <div style={{display:'flex',gap:4}}>
-                            <span style={{fontWeight:700,color:scoreColor(c.mental_score),fontSize:12}} title="Mental">
-                              🧠{c.mental_score}
+                            <span style={{fontSize:14}} title={MENTAL_TEXT[c.mental_score]}>
+                              {MENTAL_LABELS[c.mental_score]}
                             </span>
-                            <span style={{fontWeight:700,color:scoreColor(c.physical_score),fontSize:12}} title="Physical">
+                            <span style={{fontWeight:700,color:physColor(c.physical_score),fontSize:12}} title="Physical">
                               💪{c.physical_score}
                             </span>
                           </div>
@@ -116,8 +122,8 @@ export default function WellnessTab({ teamId, roster }) {
       </div>
 
       <div style={{fontSize:10,color:'var(--mid)',marginTop:12,lineHeight:1.8}}>
-        🧠 Mental &nbsp;·&nbsp; 💪 Physical &nbsp;·&nbsp;
-        <span style={{color:'#43B878'}}>■</span> 7–10 &nbsp;
+        Mental: 🔴 Spinning · 😤 Fighting It · 😐 Steady · 🎯 Dialed In · 🟢 Clear Headed
+        &nbsp;·&nbsp; 💪 Physical: <span style={{color:'#43B878'}}>■</span> 7–10 &nbsp;
         <span style={{color:'#f0b030'}}>■</span> 4–6 &nbsp;
         <span style={{color:'#e05a4a'}}>■</span> 1–3
       </div>

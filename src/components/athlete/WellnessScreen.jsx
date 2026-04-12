@@ -6,9 +6,16 @@ import {
 } from '../../lib/wellnessApi'
 
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
-const EMOJIS    = ['😞','😟','😕','😐','🙂','😊','😄','😁','🤩','🌟']
 
-function scoreColor(n) {
+const MENTAL_OPTIONS = [
+  { value: 1, emoji: '🔴', label: 'Spinning / In My Head' },
+  { value: 2, emoji: '😤', label: 'Fighting It' },
+  { value: 3, emoji: '😐', label: 'Steady' },
+  { value: 4, emoji: '🎯', label: 'Dialed In' },
+  { value: 5, emoji: '🟢', label: 'Clear Headed and Flowing' },
+]
+
+function physColor(n) {
   return n >= 7 ? '#43B878' : n >= 4 ? '#f0b030' : '#e05a4a'
 }
 
@@ -108,24 +115,22 @@ export default function WellnessScreen({ athlete, team, onBack, onSubmitted }) {
           <div style={{marginBottom:28}}>
             <div style={{fontSize:13,fontWeight:600,color:'var(--w)',marginBottom:4}}>🧠 Mental Wellness</div>
             <div style={{fontSize:12,color:'var(--mid)',marginBottom:12}}>How are you feeling mentally today?</div>
-            <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:16}}>
-              {EMOJIS.map((emoji, i) => {
-                const val = i + 1
-                const sel = mentalScore === val
-                const col = scoreColor(val)
+            <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
+              {MENTAL_OPTIONS.map(opt => {
+                const sel = mentalScore === opt.value
                 return (
                   <button
-                    key={val}
-                    onClick={() => setMentalScore(val)}
+                    key={opt.value}
+                    onClick={() => setMentalScore(opt.value)}
                     style={{
-                      width:44, height:52, borderRadius:8, cursor:'pointer',
-                      border: sel ? `2px solid ${col}` : '1px solid var(--bdr)',
-                      background: sel ? col + '22' : 'var(--d3)',
-                      display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2,
+                      display:'flex', alignItems:'center', gap:14,
+                      padding:'12px 16px', borderRadius:8, cursor:'pointer', textAlign:'left',
+                      border: sel ? '2px solid var(--g)' : '1px solid var(--bdr)',
+                      background: sel ? 'var(--g)1a' : 'var(--d3)',
                     }}
                   >
-                    <span style={{fontSize:18}}>{emoji}</span>
-                    <span style={{fontSize:9,color: sel ? col : 'var(--mid)'}}>{val}</span>
+                    <span style={{fontSize:24,lineHeight:1}}>{opt.emoji}</span>
+                    <span style={{fontSize:13,fontWeight: sel ? 600 : 400, color: sel ? 'var(--w)' : 'var(--mid)'}}>{opt.label}</span>
                   </button>
                 )
               })}
@@ -149,7 +154,7 @@ export default function WellnessScreen({ athlete, team, onBack, onSubmitted }) {
             <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
               {[1,2,3,4,5,6,7,8,9,10].map(val => {
                 const sel = physScore === val
-                const col = scoreColor(val)
+                const col = physColor(val)
                 return (
                   <button
                     key={val}
