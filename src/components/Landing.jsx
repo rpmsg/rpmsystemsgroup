@@ -22,6 +22,11 @@ export default function Landing({ onSelect }) {
             <div className="ctit">Weekly Wellness</div>
             <div className="cdesc">Submit your weekly mental and physical wellness check-in. Opens on your team's designated day.</div>
           </div>
+          <div className="card" onClick={() => onSelect('messages')}>
+            <div className="cico">💬</div>
+            <div className="ctit">My Messages</div>
+            <div className="cdesc">View messages from your practitioner. Listen to personalised audio and video messages sent to you.</div>
+          </div>
           <div className="card" onClick={() => onSelect('cycle')}>
             <div className="cico">📄</div>
             <div className="ctit">View My Cycle</div>

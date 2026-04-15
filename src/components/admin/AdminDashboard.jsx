@@ -6,6 +6,7 @@ import AdminRoster from './AdminRoster'
 import AdminCycles from './AdminCycles'
 import AdminQuestions from './AdminQuestions'
 import AdminSocialMap from './AdminSocialMap'
+import AdminMessages from './AdminMessages'
 
 const TABS = [
   { id: 'teams',     label: 'Teams' },
@@ -14,6 +15,7 @@ const TABS = [
   { id: 'cycles',    label: 'Panic Cycles' },
   { id: 'socialmap', label: 'Social Map' },
   { id: 'questions', label: 'Questions' },
+  { id: 'messages',  label: 'Messages' },
 ]
 
 export default function AdminDashboard({ onLogout, onBack }) {
@@ -44,6 +46,7 @@ export default function AdminDashboard({ onLogout, onBack }) {
           {tab === 'cycles'    && <AdminCycles />}
           {tab === 'socialmap' && <AdminSocialMap />}
           {tab === 'questions' && <AdminQuestions />}
+          {tab === 'messages'  && <AdminMessages />}
         </div>
       </div>
     </>

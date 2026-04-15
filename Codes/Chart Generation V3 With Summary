@@ -1,0 +1,581 @@
+import pandas as pd
+import networkx as nx
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+from matplotlib.lines import Line2D
+
+# ==========================================
+# 1. LOAD DATA
+# ==========================================
+df = pd.read_csv('/mnt/user-data/uploads/D_E_WSOC_Team_Map_Responses_-_Form_Responses_1.csv')
+
+# ==========================================
+# 2. MAP EMAILS TO PLAYER NAMES
+# ==========================================
+email_to_name = {
+    'shermana@dewv.edu':             'Ava Sherman',
+    'joneso@dewv.edu':               'Olivia Jones',
+    'izabelanarciso2005@gmail.com':  'Iza Narciso',
+    'castrob@dewv.edu':              'Brenda Castro',
+    'kristia10kouppi@gmail.com':     'Kristia Koupp',
+    'gpachecoacevedo06@gmail.com':   'Gabriela Acevedo',
+    'karsela@dewv.edu':              'Alexa Karsel',
+    'rouseg@dewv.edu':               'Gabrielle Rouse',
+    'tegnerc@dewv.edu':              'Carla Tegner',
+    'browns3@dewv.edu':              'Sophia Brown',
+    'vivianmariakerr@icloud.com':    'Vivian Kerr',
+    'akhremenkol@dewv.edu':          'Liliya Akhremenko',
+    'raquelalvarez05@gmail.com':     'Raquel Alvare',
+    'addycogar@gmail.com':           'Addy Cogar',
+    'raymanm@dewv.edu':              'Maya Rayma',
+    'schmitfranzl@dewv.edu':         'Leni Schmitfranz',
+    'matheniac@dewv.edu':            'Catalina Mathenia',
+    'galterior@dewv.edu':            'Rylie Galterio',
+    'gabriev@dewv.edu':              'Valeria Gabrie',
+    'andrzejuklydia@gmail.com':      'Lydia Andrzejuk',
+    'leaocotar@dewv.edu':            'Rafa Leão',
+    'shropshirem@dewv.edu':          'Macy Shropshire',
+    'kristinsdottirl@dewv.edu':      'Laufey Kristinsdottir',
+    'silvacogliattim@dewv.edu':      'Manuella Cogliatti',
+    'tomash@dewv.edu':               'Hanna Tomas',
+    'salasortegac@dewv.edu':         'Catalina Salas',
+}
+
+# Keep only rows with social map responses and add Player column
+df = df[df.iloc[:, 2].notna()].copy()
+df['Player'] = df['Email Address'].map(email_to_name)
+
+# Rename social question columns to short keys
+col_rename = {
+    'Who do you trust most to be honest and straightforward with you during training or games?': 'Trusts most to be honest',
+    'Who communicates in a way that helps you perform better or stay calm under pressure?':      'Best communicator under pressure',
+    'Who do you feel most comfortable approaching when you\u2019re unsure, stressed, or frustrated?': 'Most comfortable approaching when stressed',
+    'Whose behavior or attitude positively influences the team the most?':                       'Most positive influence on team',
+    'Who do you work most effectively with during practices or games?':                         'Works most effectively with',
+    'Who do you trust to make good decisions in tough moments of a match or practice?':         'Trusts decision-making in tough moments',
+    'Who do you feel \u201cgets you\u201d\u2014understands you well on and off the field?':    'Feels understands them best',
+    'Who do you interact with the most during team activities (training, travel, meetings)?':   'Interacts with most',
+    'Who contributes the most to a positive or supportive team environment?':                   'Contributes most to positive environment',
+    'Who do you feel the least connected to on the team?':                                      'Feels least connected to',
+    'Who do you tend to interact with the least during training, meetings, or travel?':         'Interacts with least',
+    'Who do you find it hardest to communicate with clearly or comfortably?':                   'Hardest to communicate with',
+}
+df = df.rename(columns=col_rename)
+
+pos_cols = [
+    'Trusts most to be honest',
+    'Best communicator under pressure',
+    'Most comfortable approaching when stressed',
+    'Most positive influence on team',
+    'Works most effectively with',
+    'Trusts decision-making in tough moments',
+    'Feels understands them best',
+    'Interacts with most',
+    'Contributes most to positive environment',
+]
+neg_cols = ['Feels least connected to', 'Interacts with least', 'Hardest to communicate with']
+
+print(f"Players with responses: {len(df)}")
+print(f"Unmapped emails: {df[df['Player'].isna()]['Email Address'].tolist()}")
+
+# ==========================================
+# 3. BUILD NETWORKS & CALCULATE STATS
+# ==========================================
+G        = nx.MultiDiGraph()
+G_layout = nx.Graph()
+
+players = df['Player'].dropna().unique()
+G.add_nodes_from(players)
+G_layout.add_nodes_from(players)
+
+pos_counts = {p: 0 for p in players}
+neg_counts = {p: 0 for p in players}
+
+for _, row in df.iterrows():
+    source = row['Player']
+    if pd.isna(source):
+        continue
+
+    for col in pos_cols:
+        target = row[col]
+        if pd.notna(target) and target in players:
+            pos_counts[target] += 1
+            G.add_edge(source, target, type='positive')
+            if G_layout.has_edge(source, target):
+                G_layout[source][target]['weight'] += 1
+            else:
+                G_layout.add_edge(source, target, weight=1)
+
+    for col in neg_cols:
+        target = row[col]
+        if pd.notna(target) and target in players:
+            neg_counts[target] += 1
+            G.add_edge(source, target, type='negative')
+
+# ==========================================
+# 4. DEFINE ROLES
+# ==========================================
+avg_pos = np.mean(list(pos_counts.values()))
+avg_neg = np.mean(list(neg_counts.values()))
+
+role_colors = {}
+role_labels = {}
+
+for p in players:
+    p_score = pos_counts[p]
+    n_score = neg_counts[p]
+
+    if p_score >= avg_pos and n_score <= avg_neg:
+        role_colors[p] = '#66c2a5'
+        role_labels[p] = 'Core Influencer'
+    elif p_score >= avg_pos and n_score > avg_neg:
+        role_colors[p] = '#fc8d62'
+        role_labels[p] = 'Potential Polarizing Figure'
+    elif p_score < avg_pos and n_score > avg_neg:
+        role_colors[p] = '#e78ac3'
+        role_labels[p] = 'Potential Rejection Risk'
+    else:
+        role_colors[p] = '#8da0cb'
+        role_labels[p] = 'Potential Isolation Risk'
+
+# ==========================================
+# CHART 1: SOCIAL CONNECTIVITY MAP
+# ==========================================
+plt.figure(figsize=(16, 14))
+pos = nx.kamada_kawai_layout(G_layout)
+
+pos_edges = [(u, v) for u, v, d in G.edges(data=True) if d['type'] == 'positive']
+nx.draw_networkx_edges(G, pos, edgelist=pos_edges, edge_color='mediumseagreen', alpha=0.3, width=1.0)
+
+neg_edges = [(u, v) for u, v, d in G.edges(data=True) if d['type'] == 'negative']
+nx.draw_networkx_edges(G, pos, edgelist=neg_edges, edge_color='darkorchid', alpha=0.5, width=1.5,
+                       style='dashed', connectionstyle='arc3,rad=0.15', arrowstyle='-|>', arrowsize=10)
+
+node_sizes = [pos_counts[n] * 60 + 400 for n in G.nodes()]
+node_c     = [role_colors[n] for n in G.nodes()]
+
+nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color=node_c, edgecolors='white', linewidths=2)
+nx.draw_networkx_labels(G, pos, font_size=8, font_weight='bold')
+
+legend_elements = [
+    Line2D([0], [0], marker='o', color='w', label='Core Influencer',             markerfacecolor='#66c2a5', markersize=10),
+    Line2D([0], [0], marker='o', color='w', label='Potential Polarizing Figure', markerfacecolor='#fc8d62', markersize=10),
+    Line2D([0], [0], marker='o', color='w', label='Potential Rejection Risk',    markerfacecolor='#e78ac3', markersize=10),
+    Line2D([0], [0], marker='o', color='w', label='Potential Isolation Risk',    markerfacecolor='#8da0cb', markersize=10),
+    Line2D([0], [0], color='mediumseagreen', linewidth=2, label='Positive Connections', alpha=0.7),
+    Line2D([0], [0], color='darkorchid',     linewidth=2, linestyle='--', label='Negative Connections', alpha=0.7),
+]
+plt.legend(handles=legend_elements, loc='upper right', fontsize=10)
+plt.title("Team Connectivity: Roles & Zones", fontsize=18)
+plt.axis('off')
+plt.tight_layout()
+plt.savefig('/mnt/user-data/outputs/wsoc_chart1_connectivity_map.png', dpi=300, bbox_inches='tight')
+print("Chart 1 saved.")
+plt.close()
+
+# ==========================================
+# CHART 2: INFLUENCE & FRICTION BREAKDOWN
+# ==========================================
+stats = [{'Player': p, 'Positive': pos_counts[p], 'Negative': -neg_counts[p]} for p in players]
+df_stats = pd.DataFrame(stats).sort_values('Positive', ascending=True)
+
+plt.figure(figsize=(13, 11))
+plt.barh(df_stats['Player'], df_stats['Positive'], color='mediumseagreen', label='Positive Mentions')
+plt.barh(df_stats['Player'], df_stats['Negative'], color='darkorchid',     label='Negative Mentions')
+plt.axvline(0, color='black', linewidth=0.8)
+plt.grid(axis='x', linestyle='--', alpha=0.5)
+
+for _, row in df_stats.iterrows():
+    if row['Positive'] > 0:
+        plt.text(row['Positive'] + 0.2, row.name, str(row['Positive']), va='center', fontsize=9, color='darkgreen')
+    if row['Negative'] < 0:
+        plt.text(row['Negative'] - 0.5, row.name, str(abs(row['Negative'])), va='center', fontsize=9, color='indigo')
+
+plt.title("Player Influence & Friction Breakdown", fontsize=16)
+plt.legend()
+plt.tight_layout()
+plt.savefig('/mnt/user-data/outputs/wsoc_chart2_influence_friction.png', dpi=300, bbox_inches='tight')
+print("Chart 2 saved.")
+plt.close()
+
+# ==========================================
+# CHART 3: RISK ZONES (improved label placement)
+# ==========================================
+risk_data = [{'Player': p, 'Social Support': pos_counts[p], 'Friction Load': neg_counts[p], 'Role': role_labels[p]} for p in players]
+df_risk = pd.DataFrame(risk_data)
+
+fig, ax = plt.subplots(figsize=(18, 14))
+
+xlims = (df_risk['Social Support'].min() - 2, df_risk['Social Support'].max() + 5)
+ylims = (df_risk['Friction Load'].min() - 3.5, df_risk['Friction Load'].max() + 2)
+
+# Background zones
+ax.fill_between([xlims[0], avg_pos], [avg_neg, avg_neg], [ylims[0], ylims[0]], color='#8da0cb', alpha=0.12)
+ax.fill_between([xlims[0], avg_pos], [ylims[1], ylims[1]], [avg_neg, avg_neg], color='#e78ac3', alpha=0.12)
+ax.fill_between([avg_pos, xlims[1]], [avg_neg, avg_neg], [ylims[0], ylims[0]], color='#66c2a5', alpha=0.12)
+ax.fill_between([avg_pos, xlims[1]], [ylims[1], ylims[1]], [avg_neg, avg_neg], color='#fc8d62', alpha=0.12)
+
+# Zone labels — pinned to corners, small and unobtrusive
+ax.text(xlims[0]+0.2, ylims[0]+0.2, "POTENTIAL ISOLATION RISK\n(Low Support, Low Friction)",
+        fontsize=9, color='#6a83b0', fontweight='bold', va='bottom', ha='left', alpha=0.8)
+ax.text(xlims[0]+0.2, ylims[1]-0.2, "POTENTIAL REJECTION RISK\n(Low Support, High Friction)",
+        fontsize=9, color='#c96aa0', fontweight='bold', va='top', ha='left', alpha=0.8)
+ax.text(xlims[1]-0.2, ylims[0]+0.2, "CORE INFLUENCERS\n(High Support, Low Friction)",
+        fontsize=9, color='#3a9e7e', fontweight='bold', va='bottom', ha='right', alpha=0.8)
+ax.text(xlims[1]-0.2, ylims[1]-0.2, "POTENTIAL POLARIZING FIGURES\n(High Support, High Friction)",
+        fontsize=9, color='#d4632a', fontweight='bold', va='top', ha='right', alpha=0.8)
+
+# Jitter dots that share exact coordinates so they don't all overlap
+rng = np.random.default_rng(42)
+jitter_x = rng.uniform(-0.15, 0.15, len(df_risk))
+jitter_y = rng.uniform(-0.15, 0.15, len(df_risk))
+
+dot_x = df_risk['Social Support'].values + jitter_x
+dot_y = df_risk['Friction Load'].values  + jitter_y
+
+palette = {'Core Influencer': '#66c2a5', 'Potential Polarizing Figure': '#fc8d62',
+           'Potential Rejection Risk': '#e78ac3', 'Potential Isolation Risk': '#8da0cb'}
+colors = [palette[r] for r in df_risk['Role']]
+ax.scatter(dot_x, dot_y, c=colors, s=250, edgecolors='white', linewidths=1.5, zorder=3)
+
+# ---- Iterative repulsion label placement ----
+# Start labels offset from their dot, then push apart until no overlaps
+label_x = dot_x + 0.4
+label_y = dot_y.copy().astype(float)
+
+fig.canvas.draw()   # needed to get renderer for bbox estimates
+renderer = fig.canvas.get_renderer()
+
+# Estimate label pixel widths using a fixed char-width approximation in data units
+x_range = xlims[1] - xlims[0]
+y_range = ylims[1] - ylims[0]
+fig_w, fig_h = fig.get_size_inches()
+char_w_data = x_range / (fig_w * 10)   # ~10 chars per inch
+char_h_data = y_range / (fig_h * 14)   # ~14 lines per inch
+
+def label_bbox(lx, ly, name):
+    """Approximate data-space bounding box of a label."""
+    w = len(name) * char_w_data
+    h = char_h_data
+    return (lx, ly - h/2, lx + w, ly + h/2)
+
+def boxes_overlap(b1, b2, pad=0.05):
+    return not (b1[2]+pad < b2[0] or b2[2]+pad < b1[0] or
+                b1[3]+pad < b2[1] or b2[3]+pad < b1[1])
+
+names = df_risk['Player'].tolist()
+n = len(names)
+
+# 200 repulsion iterations
+for _ in range(200):
+    for i in range(n):
+        bi = label_bbox(label_x[i], label_y[i], names[i])
+        for j in range(n):
+            if i == j:
+                continue
+            bj = label_bbox(label_x[j], label_y[j], names[j])
+            if boxes_overlap(bi, bj):
+                # Push i away from j vertically (primary) and horizontally (secondary)
+                dy = (label_y[i] - label_y[j])
+                dx = (label_x[i] - label_x[j])
+                if dy == 0: dy = 0.01
+                label_y[i] += np.sign(dy) * 0.12
+                label_x[i] += np.sign(dx) * 0.04
+
+# Draw leader lines and labels
+for i, name in enumerate(names):
+    ax.plot([dot_x[i], label_x[i]], [dot_y[i], label_y[i]],
+            color='gray', lw=0.6, alpha=0.4, zorder=2)
+    ax.text(label_x[i], label_y[i], name,
+            ha='left', va='center', fontsize=8.5, fontweight='bold',
+            color='black', zorder=4)
+
+ax.axvline(x=avg_pos, color='grey', linestyle='--', alpha=0.5)
+ax.axhline(y=avg_neg, color='grey', linestyle='--', alpha=0.5)
+ax.set_title("Team Risk Analysis: 4 Zones of Engagement", fontsize=18, pad=15)
+ax.set_xlabel("Social Support (Positive Mentions) → Higher is Better", fontsize=12)
+ax.set_ylabel("Friction Load (Negative Mentions) → Lower is Better", fontsize=12)
+ax.set_xlim(xlims)
+ax.set_ylim(ylims)
+ax.grid(True, linestyle=':', alpha=0.3)
+plt.tight_layout()
+plt.savefig('/mnt/user-data/outputs/wsoc_chart3_risk_zones.png', dpi=300, bbox_inches='tight')
+print("Chart 3 saved.")
+plt.close()
+
+print("\n=== ANALYSIS COMPLETE ===")
+print(f"Players: {len(players)}")
+print(f"Avg Positive Mentions: {avg_pos:.2f}")
+print(f"Avg Negative Mentions: {avg_neg:.2f}")
+print("\nRole Distribution:")
+from collections import Counter
+for role, count in Counter(role_labels.values()).items():
+    print(f"  {role}: {count}")
+print("\nTop 5 by Positive Mentions:")
+for p, v in sorted(pos_counts.items(), key=lambda x: -x[1])[:5]:
+    print(f"  {p}: {v}")
+print("\nTop 5 by Negative Mentions:")
+for p, v in sorted(neg_counts.items(), key=lambda x: -x[1])[:5]:
+    print(f"  {p}: {v}")
+
+# ==========================================
+# EXECUTIVE SUMMARY (1-page Word document)
+# ==========================================
+from docx import Document
+from docx.shared import Pt, RGBColor, Inches
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
+from collections import Counter
+
+# ── Derive dynamic values from computed data ───────────────────────────────────
+role_counts   = Counter(role_labels.values())
+top5_pos      = sorted(pos_counts.items(), key=lambda x: -x[1])[:5]
+top4_neg      = sorted(neg_counts.items(), key=lambda x: -x[1])[:4]
+isolation_players = sorted([p for p, r in role_labels.items() if r == 'Potential Isolation Risk'],
+                            key=lambda p: pos_counts[p])
+
+# ── Colour constants ───────────────────────────────────────────────────────────
+NAVY   = RGBColor(20,  55, 130)
+GREY   = RGBColor(90,  90,  90)
+GREEN  = RGBColor(20, 130,  80)
+RED    = RGBColor(180, 40,  40)
+PINK   = RGBColor(170, 40,  80)
+BLUE   = RGBColor(60,  90, 160)
+L_BLUE = "EEF2FA"
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+def _shd(p, fill):
+    pPr = p._p.get_or_add_pPr()
+    shd = OxmlElement('w:shd')
+    shd.set(qn('w:val'), 'clear'); shd.set(qn('w:color'), 'auto'); shd.set(qn('w:fill'), fill)
+    pPr.append(shd)
+
+def _border(p, side, color_hex, sz=4):
+    pPr = p._p.get_or_add_pPr()
+    pBdr = OxmlElement('w:pBdr')
+    el = OxmlElement(f'w:{side}')
+    el.set(qn('w:val'), 'single'); el.set(qn('w:sz'), str(sz))
+    el.set(qn('w:space'), '1');    el.set(qn('w:color'), color_hex)
+    pBdr.append(el); pPr.append(pBdr)
+
+def _run(p, text, size=9.5, bold=False, italic=False, color=None):
+    r = p.add_run(text)
+    r.font.name = 'Arial'; r.font.size = Pt(size)
+    r.font.bold = bold; r.font.italic = italic
+    if color: r.font.color.rgb = color
+    return r
+
+def shaded_para(doc, text, fill, color, size=11, bold=False,
+                align=WD_ALIGN_PARAGRAPH.LEFT, sb=0, sa=0):
+    p = doc.add_paragraph()
+    p.alignment = align
+    p.paragraph_format.space_before = Pt(sb)
+    p.paragraph_format.space_after  = Pt(sa)
+    _shd(p, fill)
+    _run(p, text, size=size, bold=bold, color=color)
+    return p
+
+def cell_head(cell, text, color, sb=8, sa=3):
+    p = cell.add_paragraph()
+    p.paragraph_format.space_before = Pt(sb)
+    p.paragraph_format.space_after  = Pt(sa)
+    color_hex = '%02X%02X%02X' % (color[0], color[1], color[2])
+    _border(p, 'bottom', color_hex, sz=4)
+    _run(p, text, size=10, bold=True, color=color)
+    return p
+
+def cell_row(cell, label, detail, label_color, size=9.5, sb=1, sa=1):
+    p = cell.add_paragraph()
+    p.paragraph_format.space_before = Pt(sb)
+    p.paragraph_format.space_after  = Pt(sa)
+    p.paragraph_format.left_indent  = Inches(0.15)
+    p.paragraph_format.first_line_indent = Inches(-0.15)
+    _run(p, f"{label}  ", size=size, bold=True, color=label_color)
+    _run(p, detail, size=size)
+    return p
+
+def cell_note(cell, text, size=8.5, sb=3, sa=0):
+    p = cell.add_paragraph()
+    p.paragraph_format.space_before = Pt(sb)
+    p.paragraph_format.space_after  = Pt(sa)
+    _run(p, text, size=size, italic=True, color=GREY)
+    return p
+
+def cell_bullet(cell, label, detail, size=9.5, sb=1, sa=1):
+    p = cell.add_paragraph()
+    p.paragraph_format.space_before = Pt(sb)
+    p.paragraph_format.space_after  = Pt(sa)
+    p.paragraph_format.left_indent  = Inches(0.15)
+    p.paragraph_format.first_line_indent = Inches(-0.15)
+    _run(p, f"• {label}", size=size, bold=True, color=NAVY)
+    _run(p, detail, size=size)
+    return p
+
+# ── Build document ─────────────────────────────────────────────────────────────
+doc = Document()
+sec = doc.sections[0]
+sec.page_width    = Inches(8.5);  sec.page_height   = Inches(11)
+sec.top_margin    = Inches(0.45); sec.bottom_margin = Inches(0.45)
+sec.left_margin   = Inches(0.6);  sec.right_margin  = Inches(0.6)
+
+# ── Title block ────────────────────────────────────────────────────────────────
+shaded_para(doc, "  D&E WOMEN'S SOCCER  —  TEAM SOCIAL MAP  |  EXECUTIVE SUMMARY",
+            fill=L_BLUE, color=NAVY, size=14, bold=True, sb=0, sa=0)
+shaded_para(doc, f"  Spring 2026   |   {len(players)} Players   |   12-Question Peer Nomination Survey   |   Confidential",
+            fill=L_BLUE, color=GREY, size=8.5, sb=0, sa=6)
+
+# ── Stat tiles ─────────────────────────────────────────────────────────────────
+tiles = doc.add_table(rows=1, cols=4)
+tiles.alignment = WD_TABLE_ALIGNMENT.CENTER
+tiles.style = 'Table Grid'
+TILE_W = Inches(1.825)
+tile_data = [
+    (str(role_counts.get('Core Influencer', 0)),            "Core Influencers",         "1E8250"),
+    (str(role_counts.get('Potential Rejection Risk', 0)),    "Potential Rejection Risk", "B03060"),
+    (str(role_counts.get('Potential Isolation Risk', 0)),    "Potential Isolation Risk", "3A5AA0"),
+    (str(role_counts.get('Potential Polarizing Figure', 0)), "Polarizing Figures",       "C06018"),
+]
+for i, (num, lbl, fill) in enumerate(tile_data):
+    cell = tiles.rows[0].cells[i]
+    cell.width = TILE_W
+    tcPr = cell._tc.get_or_add_tcPr()
+    shd = OxmlElement('w:shd')
+    shd.set(qn('w:val'), 'clear'); shd.set(qn('w:color'), 'auto'); shd.set(qn('w:fill'), fill)
+    tcPr.append(shd)
+    p1 = cell.paragraphs[0]
+    p1.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p1.paragraph_format.space_before = Pt(5); p1.paragraph_format.space_after = Pt(0)
+    _run(p1, num, size=24, bold=True, color=RGBColor(255,255,255))
+    p2 = cell.add_paragraph()
+    p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p2.paragraph_format.space_before = Pt(0); p2.paragraph_format.space_after = Pt(5)
+    _run(p2, lbl, size=7.5, color=RGBColor(255,255,255))
+
+# ── Two-column body ────────────────────────────────────────────────────────────
+body = doc.add_table(rows=1, cols=2)
+body.alignment = WD_TABLE_ALIGNMENT.CENTER
+body.style = 'Normal Table'
+lc = body.rows[0].cells[0]; rc = body.rows[0].cells[1]
+lc.width = Inches(3.55);    rc.width = Inches(3.75)
+
+# ── LEFT: findings ─────────────────────────────────────────────────────────────
+
+# Social anchors — dynamically populated
+p1_name, p1_pos = top5_pos[0]
+p1_neg = neg_counts[p1_name]
+p23_names = f"{top5_pos[1][0]} & {top5_pos[2][0]}"
+p23_pos   = top5_pos[1][1]
+p45_names = f"{top5_pos[3][0]} & {top5_pos[4][0]}"
+p45_range = f"{top5_pos[4][1]}–{top5_pos[3][1]}"
+
+cell_head(lc, "★  STRONGEST SOCIAL ANCHORS", GREEN, sb=6, sa=3)
+cell_row(lc, p1_name,
+         f"{p1_pos} positive mentions — highest on the team by a significant margin. "
+         f"Nominated across multiple dimensions by virtually every teammate. Minimal friction ({p1_neg} neg).",
+         GREEN)
+cell_row(lc, p23_names,
+         f"{p23_pos} positive mentions each. Widely trusted, influential, and low friction across the squad.",
+         GREEN)
+cell_row(lc, p45_names,
+         f"{p45_range} mentions each. Strong secondary pillars with near-zero friction.",
+         GREEN)
+cell_note(lc,
+          "The top 5 players absorb a disproportionate share of all positive nominations — "
+          "the team's cohesion leans heavily on a small core.")
+
+# Friction — dynamically populated
+neg1_name, neg1_score = top4_neg[0]
+neg1_pos = pos_counts[neg1_name]
+neg2_name, neg2_score = top4_neg[1]
+neg3_name, neg3_score = top4_neg[2]
+neg4_name, neg4_score = top4_neg[3]
+
+cell_head(lc, "⚠  FRICTION & REJECTION RISK", PINK, sb=8, sa=3)
+cell_row(lc, neg1_name,
+         f"{neg1_score} negative mentions — nominated by every single teammate in a friction dimension. "
+         f"Only {neg1_pos} positive mentions. The most significant interpersonal risk in the dataset.",
+         RED)
+cell_row(lc, f"{neg2_name}  ({neg2_score} neg)",
+         f"High friction with limited peer support. Well above the team average of {avg_neg:.0f} negative mentions.",
+         RED)
+cell_row(lc, f"{neg3_name}  ({neg3_score} neg)",
+         "Similar profile — low social support combined with elevated friction.",
+         RED)
+cell_row(lc, f"{neg4_name}  ({neg4_score} neg)",
+         "Moderate friction, limited positive recognition. Worth monitoring.",
+         RGBColor(150, 60, 60))
+
+# Isolation — dynamically populated
+iso_names = ", ".join(isolation_players)
+cell_head(lc, "○  ISOLATION RISK", BLUE, sb=8, sa=3)
+cell_row(lc, f"{len(isolation_players)} players",
+         f"{iso_names} are socially quiet — "
+         "low friction but also low connection. Risk drifting from team culture without active inclusion.",
+         BLUE)
+
+# ── RIGHT: chart reads + suggestions ──────────────────────────────────────────
+
+cell_head(rc, "◉  CONNECTIVITY MAP  —  KEY PATTERNS", NAVY, sb=6, sa=3)
+cell_row(rc, "Dense positive network",
+         "Core Influencers sit at the centre of the green connection web, with relationship lines "
+         "radiating outward to most of the squad — confirming their role as the social glue of the team.",
+         NAVY)
+cell_row(rc, "Concentrated negative lines",
+         f"The purple dashed (negative) arrows are heavily directed toward {neg1_name}, "
+         f"{neg2_name}, and {neg3_name} — visually isolating them on the network map.",
+         NAVY)
+cell_row(rc, "No polarizing figures",
+         "Zero players combine high influence with high friction — a healthy structural signal.",
+         NAVY)
+
+cell_head(rc, "▬  INFLUENCE & FRICTION BREAKDOWN  —  KEY READS", NAVY, sb=8, sa=3)
+cell_row(rc, "Positive leaders",
+         f"{p1_name}'s green bar ({p1_pos}) stands alone on the right. "
+         f"{p23_names} form a clear second tier at {p23_pos}.",
+         GREEN)
+cell_row(rc, "Friction outliers",
+         f"{neg1_name}'s purple bar extends to –{neg1_score}, visually dominant over all others. "
+         f"{neg2_name} (–{neg2_score}) and {neg3_name} (–{neg3_score}) are the only other players "
+         "with bars extending significantly to the left.",
+         RED)
+cell_row(rc, "Balanced majority",
+         "Most players show modest positive bars with negligible negative bars — "
+         "the team's baseline health is good, with friction concentrated in a small group.",
+         GREY)
+
+cell_head(rc, "→  SUGGESTED CONSIDERATIONS", NAVY, sb=8, sa=3)
+for label, detail in [
+    (f"Consider a private conversation with {neg1_name}",
+     f"— her friction score is a significant outlier and worth understanding before drawing conclusions."),
+    (f"Check in individually with {neg2_name} and {neg3_name}",
+     "— understanding what is driving their friction scores may reveal fixable dynamics."),
+    ("Intentional grouping",
+     "— bringing Isolation Risk players into closer proximity with Core Influencers in training and "
+     "team activities may help build connection naturally."),
+    ("Distribute leadership visibility",
+     "— with cohesion leaning heavily on a small core, broadening who carries social responsibility "
+     "could strengthen overall team resilience."),
+]:
+    p = rc.add_paragraph()
+    p.paragraph_format.space_before = Pt(1); p.paragraph_format.space_after = Pt(1)
+    p.paragraph_format.left_indent  = Inches(0.15)
+    p.paragraph_format.first_line_indent = Inches(-0.15)
+    _run(p, f"• {label}", size=9.5, bold=True, color=NAVY)
+    _run(p, detail, size=9.5)
+
+# ── Footer ─────────────────────────────────────────────────────────────────────
+fp = doc.add_paragraph()
+fp.paragraph_format.space_before = Pt(8); fp.paragraph_format.space_after = Pt(0)
+_border(fp, 'top', 'BBBBBB', sz=4)
+_run(fp,
+     "Confidential — For coaching staff use only. "
+     "All data is self-reported by players through peer nomination. "
+     "Results are intended as a starting point for conversation, not a definitive assessment of any individual.",
+     size=7.5, italic=True, color=RGBColor(140,140,140))
+fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+doc.save('/mnt/user-data/outputs/WSOC_Executive_Summary_1Page.docx')
+print("Executive summary saved.")
