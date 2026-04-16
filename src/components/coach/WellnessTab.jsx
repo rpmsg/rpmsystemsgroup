@@ -34,7 +34,7 @@ function AthleteHistoryModal({ athlete, checkins, onClose }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
           <div>
             <h3 style={{ margin: 0, marginBottom: 4 }}>{athlete.full_name}</h3>
-            <div style={{ fontSize: 12, color: 'var(--mid)' }}>All wellness check-ins — {rows.length} total</div>
+            <div style={{ fontSize: 12, color: 'var(--mid)' }}>Wellness history — {rows.length} check-ins</div>
           </div>
           <button className="btn bo bsm" onClick={onClose}>✕ Close</button>
         </div>
@@ -45,48 +45,83 @@ function AthleteHistoryModal({ athlete, checkins, onClose }) {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {rows.map((c, i) => (
-              <div key={i} style={{
-                background: 'var(--d3)', borderRadius: 8, padding: '12px 16px',
-                border: '1px solid var(--bdr)',
-              }}>
-                <div style={{ fontSize: 11, color: 'var(--mid)', marginBottom: 10, fontWeight: 600 }}>
-                  {fmtDate(c.week_date)}
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div>
-                    <div style={{ fontSize: 10, color: 'var(--mid)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Mental</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 16 }}>{MENTAL_EMOJI[c.mental_score]}</span>
-                      <span style={{ color: mentalColor(c.mental_score), fontWeight: 700, fontSize: 14 }}>
-                        {MENTAL_TEXT[c.mental_score]}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--mid)', marginTop: 2 }}>
-                      {c.mental_score}/5{c.mental_word ? ` · "${c.mental_word}"` : ''}
-                    </div>
-                    {c.mental_score <= 2 && (
-                      <div style={{ fontSize: 11, color: '#e05a4a', marginTop: 4 }}>
-                        ⚠ Flagged
-                      </div>
-                    )}
+            {rows.map((c, i) => {
+              const mc = mentalColor(c.mental_score)
+              return (
+                <div key={i} style={{
+                  background: mc + '12',
+                  borderRadius: 10,
+                  padding: '14px 16px',
+                  border: `1px solid ${mc}33`,
+                }}>
+                  <div style={{ fontSize: 11, color: 'var(--mid)', marginBottom: 10, fontWeight: 600 }}>
+                    Week of {fmtDate(c.week_date)}
                   </div>
-                  <div>
-                    <div style={{ fontSize: 10, color: 'var(--mid)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Physical</div>
-                    <div style={{ color: physColor(c.physical_score), fontWeight: 700, fontSize: 14 }}>
-                      {c.physical_score}/10
-                    </div>
-                    {c.physical_score <= 3 && (
-                      <div style={{ fontSize: 11, color: '#e05a4a', marginTop: 4 }}>
-                        ⚠ Flagged
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 10, color: 'var(--mid)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Mental</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
+                        <span style={{ fontSize: 18 }}>{MENTAL_EMOJI[c.mental_score]}</span>
+                        <span style={{ color: mc, fontWeight: 700, fontSize: 13 }}>
+                          {MENTAL_TEXT[c.mental_score]}
+                        </span>
                       </div>
-                    )}
+                      <div style={{ fontSize: 11, color: 'var(--mid)' }}>
+                        {c.mental_score}/5{c.mental_word ? ` · "${c.mental_word}"` : ''}
+                      </div>
+                      {c.mental_score <= 2 && (
+                        <div style={{ fontSize: 11, color: '#e05a4a', marginTop: 4, fontWeight: 600 }}>⚠ Flagged</div>
+                      )}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, color: 'var(--mid)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Physical</div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+                        <span style={{ color: physColor(c.physical_score), fontWeight: 700, fontSize: 22 }}>
+                          {c.physical_score}
+                        </span>
+                        <span style={{ fontSize: 11, color: 'var(--mid)' }}>/10</span>
+                      </div>
+                      {c.physical_score <= 3 && (
+                        <div style={{ fontSize: 11, color: '#e05a4a', marginTop: 4, fontWeight: 600 }}>⚠ Flagged</div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+// ── Check-in card (table cell) ────────────────────────────────
+function CheckinCard({ c }) {
+  const mc = mentalColor(c.mental_score)
+  const pc = physColor(c.physical_score)
+  return (
+    <div style={{
+      background: mc + '14',
+      border: `1px solid ${mc}30`,
+      borderRadius: 8,
+      padding: '10px 12px',
+      minWidth: 120,
+    }}>
+      {/* Mental */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7 }}>
+        <span style={{ fontSize: 18, lineHeight: 1 }}>{MENTAL_EMOJI[c.mental_score]}</span>
+        <span style={{ color: mc, fontWeight: 600, fontSize: 12, lineHeight: 1.2 }}>
+          {c.mental_word || MENTAL_TEXT[c.mental_score]}
+        </span>
+      </div>
+      {/* Divider */}
+      <div style={{ height: 1, background: mc + '25', marginBottom: 7 }} />
+      {/* Physical */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+        <span style={{ fontSize: 10, color: 'var(--mid)', marginRight: 2 }}>body</span>
+        <span style={{ color: pc, fontWeight: 700, fontSize: 16, lineHeight: 1 }}>{c.physical_score}</span>
+        <span style={{ fontSize: 10, color: 'var(--mid)' }}>/10</span>
       </div>
     </div>
   )
@@ -158,17 +193,17 @@ export default function WellnessTab({ teamId, roster }) {
         </div>
       )}
 
-      {/* ── Table ── */}
+      {/* ── Grid ── */}
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 4px', fontSize: 12 }}>
           <thead>
-            <tr style={{ borderBottom: '2px solid var(--bdr)' }}>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--mid)', fontWeight: 600, minWidth: 140 }}>
+            <tr>
+              <th style={{ textAlign: 'left', padding: '4px 12px 10px', color: 'var(--mid)', fontWeight: 600, minWidth: 148 }}>
                 Athlete
               </th>
-              {allWeeks.map(w => (
-                <th key={w} style={{ textAlign: 'center', padding: '8px 12px', color: 'var(--mid)', fontWeight: 600, minWidth: 140 }}>
-                  {fmtDate(w)}
+              {allWeeks.map((w, i) => (
+                <th key={w} style={{ textAlign: 'left', padding: '4px 8px 10px', color: i === 0 ? 'var(--w)' : 'var(--mid)', fontWeight: 600, minWidth: 148 }}>
+                  {fmtDate(w)}{i === 0 ? <span style={{ fontSize: 10, color: 'var(--g)', marginLeft: 6 }}>latest</span> : ''}
                 </th>
               ))}
             </tr>
@@ -177,38 +212,27 @@ export default function WellnessTab({ teamId, roster }) {
             {roster.map(a => (
               <tr
                 key={a.id}
-                style={{ borderBottom: '1px solid var(--bdr)', cursor: 'pointer' }}
+                style={{ cursor: 'pointer' }}
                 onClick={() => setSelected(a)}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--d3)'}
-                onMouseLeave={e => e.currentTarget.style.background = ''}
               >
-                <td style={{ padding: '10px 12px', fontWeight: 500, color: 'var(--w)', whiteSpace: 'nowrap' }}>
-                  {a.full_name}
-                  <span style={{ fontSize: 10, color: 'var(--mid)', marginLeft: 6 }}>↗</span>
+                <td style={{ padding: '3px 12px', verticalAlign: 'middle' }}>
+                  <div style={{ fontWeight: 500, color: 'var(--w)', fontSize: 13 }}>{a.full_name}</div>
+                  <div style={{ fontSize: 10, color: 'var(--mid)', marginTop: 1 }}>View history ↗</div>
                 </td>
                 {allWeeks.map(w => {
                   const c = byKey[`${a.id}:${w}`]
                   return (
-                    <td key={w} style={{ padding: '10px 12px', textAlign: 'left' }}>
+                    <td key={w} style={{ padding: '3px 8px', verticalAlign: 'middle' }}>
                       {c ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                          {/* Mental row: emoji + submitted word */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: 15, lineHeight: 1 }}>{MENTAL_EMOJI[c.mental_score]}</span>
-                            <span style={{ color: mentalColor(c.mental_score), fontWeight: 600, fontSize: 12 }}>
-                              {c.mental_word || '—'}
-                            </span>
-                          </div>
-                          {/* Physical row: number only */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <span style={{ fontSize: 10, color: 'var(--mid)', lineHeight: 1 }}>phys</span>
-                            <span style={{ color: physColor(c.physical_score), fontWeight: 700, fontSize: 15, lineHeight: 1 }}>
-                              {c.physical_score}
-                            </span>
-                          </div>
-                        </div>
+                        <CheckinCard c={c} />
                       ) : (
-                        <span style={{ color: 'var(--d4)', fontSize: 12 }}>—</span>
+                        <div style={{
+                          background: 'var(--d3)', border: '1px solid var(--bdr)',
+                          borderRadius: 8, padding: '10px 12px', minWidth: 120,
+                          color: 'var(--d4)', fontSize: 13, textAlign: 'center',
+                        }}>
+                          —
+                        </div>
                       )}
                     </td>
                   )
@@ -219,12 +243,11 @@ export default function WellnessTab({ teamId, roster }) {
         </table>
       </div>
 
-      <div style={{ fontSize: 10, color: 'var(--mid)', marginTop: 12, lineHeight: 1.9 }}>
-        Mental: 🟢 Dialed In / Clear Headed &nbsp; 😐 Steady &nbsp; 😤🔴 Spinning / Fighting It
-        &nbsp;·&nbsp;
-        Physical: <span style={{ color: '#43B878' }}>■</span> 7–10 &nbsp;
-        <span style={{ color: '#f0b030' }}>■</span> 4–6 &nbsp;
-        <span style={{ color: '#e05a4a' }}>■</span> 1–3
+      <div style={{ fontSize: 10, color: 'var(--mid)', marginTop: 16, lineHeight: 1.9 }}>
+        Cell color = mental state &nbsp;·&nbsp;
+        <span style={{ color: '#43B878' }}>■</span> Dialed In / Clear Headed &nbsp;
+        <span style={{ color: '#f0b030' }}>■</span> Steady &nbsp;
+        <span style={{ color: '#e05a4a' }}>■</span> Struggling
         &nbsp;·&nbsp; Click any athlete to view full history
       </div>
 
