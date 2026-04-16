@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { fetchTeamWellnessCheckins } from '../../lib/wellnessApi'
 
 const MENTAL_EMOJI = { 1: '🔴', 2: '😤', 3: '😐', 4: '🎯', 5: '🟢' }
@@ -92,6 +92,109 @@ function AthleteHistoryModal({ athlete, checkins, onClose }) {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ── Key popover button ────────────────────────────────────────
+function KeyPopover() {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
+
+  return (
+    <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          fontSize: 11, fontWeight: 600, color: open ? 'var(--w)' : 'var(--mid)',
+          background: open ? 'var(--d3)' : 'transparent',
+          border: '1px solid var(--bdr)', borderRadius: 6,
+          padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit',
+          display: 'flex', alignItems: 'center', gap: 5,
+        }}
+      >
+        <span>?</span> How to read this
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+          background: 'var(--d2)', border: '1px solid var(--bdr)', borderRadius: 12,
+          padding: 20, width: 300, zIndex: 200,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        }}>
+          {/* Mental */}
+          <div style={{ fontSize: 11, color: 'var(--mid)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
+            Mental State
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+            {[
+              { score: 1, desc: 'In their head, racing thoughts' },
+              { score: 2, desc: 'Struggling, resisting the process' },
+              { score: 3, desc: 'Holding steady, not great not bad' },
+              { score: 4, desc: 'Focused and locked in' },
+              { score: 5, desc: 'Flowing, fully present' },
+            ].map(({ score, desc }) => (
+              <div key={score} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 30, height: 30, borderRadius: 6, flexShrink: 0,
+                  background: mentalColor(score) + '20',
+                  border: `1px solid ${mentalColor(score)}40`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
+                }}>
+                  {MENTAL_EMOJI[score]}
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: mentalColor(score), fontWeight: 700 }}>{MENTAL_TEXT[score]}</div>
+                  <div style={{ fontSize: 11, color: 'var(--mid)', marginTop: 1 }}>{desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Physical */}
+          <div style={{ height: 1, background: 'var(--bdr)', marginBottom: 12 }} />
+          <div style={{ fontSize: 11, color: 'var(--mid)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
+            Physical Score (body X/10)
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {[
+              { range: '7 – 10', color: '#43B878', label: 'Good', desc: 'Body feels strong and ready' },
+              { range: '4 – 6',  color: '#f0b030', label: 'Fair', desc: 'Some fatigue or minor discomfort' },
+              { range: '1 – 3',  color: '#e05a4a', label: 'Poor', desc: 'Pain, injury concern, or overtraining' },
+            ].map(({ range, color, label, desc }) => (
+              <div key={range} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 30, height: 30, borderRadius: 6, flexShrink: 0,
+                  background: color + '20', border: `1px solid ${color}40`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11, fontWeight: 700, color,
+                }}>
+                  {range.split(' – ')[0]}
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color, fontWeight: 700 }}>{label} <span style={{ color: 'var(--mid)', fontWeight: 400 }}>{range}</span></div>
+                  <div style={{ fontSize: 11, color: 'var(--mid)', marginTop: 1 }}>{desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ height: 1, background: 'var(--bdr)', margin: '12px 0' }} />
+          <div style={{ fontSize: 11, color: 'var(--mid)', lineHeight: 1.5 }}>
+            Cell background color reflects mental state at a glance. Click any athlete row to see their full check-in history.
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -193,6 +296,12 @@ export default function WellnessTab({ teamId, roster }) {
         </div>
       )}
 
+      {/* ── Grid header ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div className="cct">Weekly Check-Ins</div>
+        <KeyPopover />
+      </div>
+
       {/* ── Grid ── */}
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 4px', fontSize: 12 }}>
@@ -243,36 +352,6 @@ export default function WellnessTab({ teamId, roster }) {
         </table>
       </div>
 
-      <div style={{ marginTop: 20, padding: '12px 16px', background: 'var(--d3)', borderRadius: 8, border: '1px solid var(--bdr)' }}>
-        <div style={{ fontSize: 10, color: 'var(--mid)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
-          Mental State Key
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px' }}>
-          {[
-            { score: 1, label: 'Spinning' },
-            { score: 2, label: 'Fighting It' },
-            { score: 3, label: 'Steady' },
-            { score: 4, label: 'Dialed In' },
-            { score: 5, label: 'Clear Headed' },
-          ].map(({ score, label }) => (
-            <div key={score} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: 6,
-                background: mentalColor(score) + '20',
-                border: `1px solid ${mentalColor(score)}40`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 15,
-              }}>
-                {MENTAL_EMOJI[score]}
-              </div>
-              <span style={{ fontSize: 12, color: mentalColor(score), fontWeight: 600 }}>{label}</span>
-            </div>
-          ))}
-        </div>
-        <div style={{ fontSize: 10, color: 'var(--mid)', marginTop: 10 }}>
-          Physical score shown as <strong style={{ color: 'var(--w)' }}>body X/10</strong> inside each card &nbsp;·&nbsp; Click any athlete to view full history
-        </div>
-      </div>
 
       {selected && (
         <AthleteHistoryModal
