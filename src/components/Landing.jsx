@@ -12,25 +12,10 @@ export default function Landing({ onSelect }) {
         <div className="hs">The mental performance intake portal for collegiate athletes. Complete your assessment. Build your mental system.</div>
 
         <div className="cards">
-          <div className="card" onClick={() => onSelect('athlete')}>
+          <div className="card" onClick={() => onSelect('portal')}>
             <div className="cico">🏃</div>
-            <div className="ctit">Athlete Intake</div>
-            <div className="cdesc">Complete your Panic Cycle and Social Map assessments. Takes 10–12 minutes.</div>
-          </div>
-          <div className="card" onClick={() => onSelect('wellness')}>
-            <div className="cico">💚</div>
-            <div className="ctit">Weekly Wellness</div>
-            <div className="cdesc">Submit your weekly mental and physical wellness check-in. Opens on your team's designated day.</div>
-          </div>
-          <div className="card" onClick={() => onSelect('messages')}>
-            <div className="cico">💬</div>
-            <div className="ctit">My Messages</div>
-            <div className="cdesc">View messages from your practitioner. Listen to personalised audio and video messages sent to you.</div>
-          </div>
-          <div className="card" onClick={() => onSelect('cycle')}>
-            <div className="cico">📄</div>
-            <div className="ctit">View My Cycle</div>
-            <div className="cdesc">Access your personal Panic Cycle document once it has been released by your coach.</div>
+            <div className="ctit">Athlete Portal</div>
+            <div className="cdesc">Access your assessments, panic cycle, weekly wellness check-ins, and messages — all in one place.</div>
           </div>
           <div className="card" onClick={() => onSelect('coach')}>
             <div className="cico">📊</div>

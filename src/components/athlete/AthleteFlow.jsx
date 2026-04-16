@@ -9,10 +9,17 @@ import ConfirmScreen from './ConfirmScreen'
 // screen ids
 const S = { CODE: 'code', NAME: 'name', CONSENT: 'consent', INTAKE: 'intake', PIN: 'pin', CONFIRM: 'confirm' }
 
-export default function AthleteFlow({ onBack }) {
-  const [screen, setScreen] = useState(S.CODE)
-  const [team, setTeam]       = useState(null)
-  const [athlete, setAthlete] = useState(null)
+export default function AthleteFlow({ onBack, initialTeam = null, initialAthlete = null, skipPin = false, onDone = null }) {
+  const exitToParent = onDone || onBack
+
+  const [screen, setScreen] = useState(() => {
+    if (initialTeam && initialAthlete) {
+      return (initialTeam.current_administration || 1) === 1 ? S.CONSENT : S.INTAKE
+    }
+    return S.CODE
+  })
+  const [team, setTeam]       = useState(initialTeam)
+  const [athlete, setAthlete] = useState(initialAthlete)
   const [submission, setSubmission] = useState(null)
 
   return (
@@ -37,7 +44,7 @@ export default function AthleteFlow({ onBack }) {
         <ConsentScreen
           team={team}
           athlete={athlete}
-          onBack={() => setScreen(S.CODE)}
+          onBack={initialTeam ? exitToParent : () => setScreen(S.CODE)}
           onProceed={() => setScreen(S.INTAKE)}
         />
       )}
@@ -47,8 +54,7 @@ export default function AthleteFlow({ onBack }) {
           athlete={athlete}
           onSubmitted={(pc) => {
             setSubmission(pc)
-            // Admin 1 only: create PIN for View My Cycle access
-            setScreen((team.current_administration || 1) === 1 ? S.PIN : S.CONFIRM)
+            setScreen((team.current_administration || 1) === 1 && !skipPin ? S.PIN : S.CONFIRM)
           }}
         />
       )}
@@ -64,7 +70,7 @@ export default function AthleteFlow({ onBack }) {
           team={team}
           athlete={athlete}
           pc={submission}
-          onHome={onBack}
+          onHome={exitToParent}
         />
       )}
     </>
