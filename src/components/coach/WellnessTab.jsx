@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { fetchTeamWellnessCheckins } from '../../lib/wellnessApi'
 
-const MENTAL_TEXT = { 1: 'Spinning', 2: 'Fighting It', 3: 'Steady', 4: 'Dialed In', 5: 'Clear Headed' }
+const MENTAL_EMOJI = { 1: '🔴', 2: '😤', 3: '😐', 4: '🎯', 5: '🟢' }
+const MENTAL_TEXT  = { 1: 'Spinning', 2: 'Fighting It', 3: 'Steady', 4: 'Dialed In', 5: 'Clear Headed' }
 
 function mentalColor(n) {
   return n >= 4 ? '#43B878' : n === 3 ? '#f0b030' : '#e05a4a'
@@ -55,8 +56,11 @@ function AthleteHistoryModal({ athlete, checkins, onClose }) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <div style={{ fontSize: 10, color: 'var(--mid)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Mental</div>
-                    <div style={{ color: mentalColor(c.mental_score), fontWeight: 700, fontSize: 14 }}>
-                      {MENTAL_TEXT[c.mental_score]}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 16 }}>{MENTAL_EMOJI[c.mental_score]}</span>
+                      <span style={{ color: mentalColor(c.mental_score), fontWeight: 700, fontSize: 14 }}>
+                        {MENTAL_TEXT[c.mental_score]}
+                      </span>
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--mid)', marginTop: 2 }}>
                       {c.mental_score}/5{c.mental_word ? ` · "${c.mental_word}"` : ''}
@@ -187,22 +191,19 @@ export default function WellnessTab({ teamId, roster }) {
                   return (
                     <td key={w} style={{ padding: '10px 12px', textAlign: 'left' }}>
                       {c ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {/* Mental row */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                          {/* Mental row: emoji + submitted word */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: 10, color: 'var(--mid)', width: 16, flexShrink: 0 }}>M</span>
+                            <span style={{ fontSize: 15, lineHeight: 1 }}>{MENTAL_EMOJI[c.mental_score]}</span>
                             <span style={{ color: mentalColor(c.mental_score), fontWeight: 600, fontSize: 12 }}>
-                              {MENTAL_TEXT[c.mental_score]}
-                            </span>
-                            <span style={{ color: mentalColor(c.mental_score), fontSize: 11, opacity: 0.8 }}>
-                              {c.mental_score}/5
+                              {c.mental_word || '—'}
                             </span>
                           </div>
-                          {/* Physical row */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: 10, color: 'var(--mid)', width: 16, flexShrink: 0 }}>P</span>
-                            <span style={{ color: physColor(c.physical_score), fontWeight: 600, fontSize: 12 }}>
-                              {c.physical_score}/10
+                          {/* Physical row: number only */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <span style={{ fontSize: 10, color: 'var(--mid)', lineHeight: 1 }}>phys</span>
+                            <span style={{ color: physColor(c.physical_score), fontWeight: 700, fontSize: 15, lineHeight: 1 }}>
+                              {c.physical_score}
                             </span>
                           </div>
                         </div>
@@ -219,11 +220,9 @@ export default function WellnessTab({ teamId, roster }) {
       </div>
 
       <div style={{ fontSize: 10, color: 'var(--mid)', marginTop: 12, lineHeight: 1.9 }}>
-        Mental (M): <span style={{ color: '#43B878' }}>■</span> Dialed In / Clear Headed (4–5) &nbsp;
-        <span style={{ color: '#f0b030' }}>■</span> Steady (3) &nbsp;
-        <span style={{ color: '#e05a4a' }}>■</span> Spinning / Fighting It (1–2)
+        Mental: 🟢 Dialed In / Clear Headed &nbsp; 😐 Steady &nbsp; 😤🔴 Spinning / Fighting It
         &nbsp;·&nbsp;
-        Physical (P): <span style={{ color: '#43B878' }}>■</span> 7–10 &nbsp;
+        Physical: <span style={{ color: '#43B878' }}>■</span> 7–10 &nbsp;
         <span style={{ color: '#f0b030' }}>■</span> 4–6 &nbsp;
         <span style={{ color: '#e05a4a' }}>■</span> 1–3
         &nbsp;·&nbsp; Click any athlete to view full history
