@@ -243,12 +243,35 @@ export default function WellnessTab({ teamId, roster }) {
         </table>
       </div>
 
-      <div style={{ fontSize: 10, color: 'var(--mid)', marginTop: 16, lineHeight: 1.9 }}>
-        Cell color = mental state &nbsp;·&nbsp;
-        <span style={{ color: '#43B878' }}>■</span> Dialed In / Clear Headed &nbsp;
-        <span style={{ color: '#f0b030' }}>■</span> Steady &nbsp;
-        <span style={{ color: '#e05a4a' }}>■</span> Struggling
-        &nbsp;·&nbsp; Click any athlete to view full history
+      <div style={{ marginTop: 20, padding: '12px 16px', background: 'var(--d3)', borderRadius: 8, border: '1px solid var(--bdr)' }}>
+        <div style={{ fontSize: 10, color: 'var(--mid)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
+          Mental State Key
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px' }}>
+          {[
+            { score: 1, label: 'Spinning' },
+            { score: 2, label: 'Fighting It' },
+            { score: 3, label: 'Steady' },
+            { score: 4, label: 'Dialed In' },
+            { score: 5, label: 'Clear Headed' },
+          ].map(({ score, label }) => (
+            <div key={score} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: 6,
+                background: mentalColor(score) + '20',
+                border: `1px solid ${mentalColor(score)}40`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 15,
+              }}>
+                {MENTAL_EMOJI[score]}
+              </div>
+              <span style={{ fontSize: 12, color: mentalColor(score), fontWeight: 600 }}>{label}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 10, color: 'var(--mid)', marginTop: 10 }}>
+          Physical score shown as <strong style={{ color: 'var(--w)' }}>body X/10</strong> inside each card &nbsp;·&nbsp; Click any athlete to view full history
+        </div>
       </div>
 
       {selected && (
