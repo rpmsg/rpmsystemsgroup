@@ -287,10 +287,12 @@ export default function AthleteModal({ athlete, score, totalAthletes, allScores,
               {/* Written summary */}
               <div style={{ background: 'var(--d3)', borderRadius: 8, padding: '16px 18px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: relTagColor }}>{comparison.relationshipType}</span>
-                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: relTagColor }}>{comparison.relationshipType}</span>
                   <div style={{ display: 'flex', gap: 14 }}>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 9, color: 'var(--mid)', letterSpacing: 1, textTransform: 'uppercase' }}>Cohesion Score</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: cohesionColor }}>{comparison.cohesion} / 100</div>
+                    </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: 9, color: 'var(--mid)', letterSpacing: 1, textTransform: 'uppercase' }}>Friction Proximity</div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: comparison.frictionProximity === 'Low' ? 'var(--gl)' : comparison.frictionProximity === 'Moderate' ? '#f0b030' : 'var(--rl)' }}>
