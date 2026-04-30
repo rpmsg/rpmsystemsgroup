@@ -81,6 +81,7 @@ export default function WellnessScreen({ athlete, team, onBack, onSubmitted }) {
     <>{navBar}
       <div className="cw">
         <div className="box" style={{textAlign:'center'}}>
+          {team.logo_url && <img src={team.logo_url} alt="" style={{ height: 44, width: 'auto', opacity: 0.85, display: 'block', margin: '0 auto 20px' }} />}
           <div style={{fontSize:40,marginBottom:16}}>🗓️</div>
           <h2>Window Closed</h2>
           <p>Wellness check-ins are open on <strong>{DAY_NAMES[resetDay]}s</strong> only. Come back then.</p>
@@ -94,6 +95,7 @@ export default function WellnessScreen({ athlete, team, onBack, onSubmitted }) {
     <>{navBar}
       <div className="cw">
         <div className="box" style={{textAlign:'center'}}>
+          {team.logo_url && <img src={team.logo_url} alt="" style={{ height: 44, width: 'auto', opacity: 0.85, display: 'block', margin: '0 auto 20px' }} />}
           <div style={{fontSize:40,marginBottom:16}}>✅</div>
           <h2>Already Submitted</h2>
           <p>You've completed your check-in for this week. See you next {DAY_NAMES[resetDay]}!</p>
@@ -107,6 +109,9 @@ export default function WellnessScreen({ athlete, team, onBack, onSubmitted }) {
     <>{navBar}
       <div className="cw">
         <div className="box" style={{maxWidth:520}}>
+          {team.logo_url && (
+            <img src={team.logo_url} alt="" style={{ height: 44, width: 'auto', opacity: 0.85, display: 'block', marginBottom: 20 }} />
+          )}
           <div className="tag">Weekly Check-In</div>
           <h2 style={{marginBottom:4}}>How are you doing?</h2>
           <p style={{marginBottom:28, color:'var(--mid)', fontSize:13}}>{athlete.full_name.split(' ')[0]}, take a moment to check in with yourself.</p>

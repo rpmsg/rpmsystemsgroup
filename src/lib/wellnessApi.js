@@ -3,7 +3,7 @@ import { supabase } from './supabase'
 export async function lookupWellnessTeam(code) {
   const { data, error } = await supabase
     .from('teams')
-    .select('id, name, team_code, wellness_reset_day')
+    .select('id, name, team_code, wellness_reset_day, logo_url')
     .eq('team_code', code.trim().toUpperCase())
     .eq('status', 'active')
   if (error) throw error

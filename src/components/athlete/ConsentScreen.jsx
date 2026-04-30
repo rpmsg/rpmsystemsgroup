@@ -20,6 +20,9 @@ export default function ConsentScreen({ team, athlete, onBack, onProceed }) {
       </nav>
       <div className="cw">
         <div className="box" style={{ maxWidth: 520 }}>
+          {team.logo_url && (
+            <img src={team.logo_url} alt="" style={{ height: 44, width: 'auto', opacity: 0.85, display: 'block', marginBottom: 20 }} />
+          )}
           <div style={{ background: 'rgba(29,143,90,.12)', border: '1px solid rgba(29,143,90,.3)', borderRadius: 8, padding: '12px 16px', marginBottom: 20, fontSize: 13 }}>
             ✓ Joined as <strong>{athlete.full_name}</strong> &nbsp;·&nbsp; Team: <strong>{team.name}</strong>
           </div>

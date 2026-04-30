@@ -69,6 +69,7 @@ function NameScreen({ team, roster, onBack, onSelect }) {
       </nav>
       <div className="cw">
         <div className="box">
+          {team.logo_url && <img src={team.logo_url} alt="" style={{ height: 44, width: 'auto', opacity: 0.85, display: 'block', marginBottom: 20 }} />}
           <div className="tag">{team.name}</div>
           <h2>Select Your Name</h2>
           <div className="fld" style={{ marginBottom: 16 }}>
@@ -147,6 +148,7 @@ function PinScreen({ athlete, team, onBack, onVerified }) {
     <>{navBar}
       <div className="cw">
         <div className="box">
+          {team.logo_url && <img src={team.logo_url} alt="" style={{ height: 44, width: 'auto', opacity: 0.85, display: 'block', marginBottom: 20 }} />}
           <h2>Create Your PIN</h2>
           <p>Set a 4-digit PIN to access your messages and wellness check-ins.</p>
           <div className="fld"><label>Choose a PIN</label>{pinInput}</div>
@@ -172,6 +174,7 @@ function PinScreen({ athlete, team, onBack, onVerified }) {
     <>{navBar}
       <div className="cw">
         <div className="box">
+          {team.logo_url && <img src={team.logo_url} alt="" style={{ height: 44, width: 'auto', opacity: 0.85, display: 'block', marginBottom: 20 }} />}
           <h2>Enter Your PIN</h2>
           <p>Welcome back, {athlete.full_name.split(' ')[0]}. Enter your 4-digit PIN to continue.</p>
           <div className="fld"><label>PIN</label>{pinInput}</div>
@@ -230,6 +233,9 @@ export default function MessagesFlow({ onBack }) {
       </nav>
       <div className="cw">
         <div className="box" style={{ maxWidth: 560 }}>
+          {team.logo_url && (
+            <img src={team.logo_url} alt="" style={{ height: 44, width: 'auto', opacity: 0.85, display: 'block', marginBottom: 20 }} />
+          )}
           <div className="tag">{team.name}</div>
           <h2 style={{ marginBottom: 4 }}>Your Messages</h2>
           <p style={{ marginBottom: 24, color: 'var(--mid)', fontSize: 13 }}>

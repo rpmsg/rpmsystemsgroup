@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useHome } from '../../HomeContext'
 import { lookupTeamCode, fetchRoster, fetchCompletedAthleteIds } from '../../lib/athleteApi'
-import { fetchAthletePin, setAthletePin } from '../../lib/cycleApi'
+import { fetchAthletePin, setAthletePin, fetchPanicIntakeData } from '../../lib/cycleApi'
 import { fetchAthleteUnreadCount } from '../../lib/messagesApi'
 import AthleteFlow from './AthleteFlow'
 import WellnessScreen from './WellnessScreen'
 import AthleteInbox from './AthleteInbox'
-import CycleDocumentScreen from './CycleDocumentScreen'
+import CycleFlow from './CycleFlow'
 
 const STORAGE_KEY = 'rpm_athlete_session'
 const ADMIN_LABELS = { 1: 'Athlete Intake', 2: 'Mid-Season Assessment', 3: 'Final Assessment' }
@@ -213,6 +213,9 @@ function Dashboard({ team, athlete, intakeCompleted, unreadCount, onSelect, onSi
         <div style={{ maxWidth: 560, margin: '0 auto', padding: '0 16px' }}>
 
           <div style={{ marginBottom: 28 }}>
+            {team.logo_url && (
+              <img src={team.logo_url} alt="" style={{ height: 44, width: 'auto', opacity: 0.85, display: 'block', marginBottom: 12 }} />
+            )}
             <div style={{ fontSize: 11, color: 'var(--mid)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>
               {team.name}
             </div>
@@ -262,9 +265,9 @@ function Dashboard({ team, athlete, intakeCompleted, unreadCount, onSelect, onSi
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>View My Cycle</div>
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Performance Cycles</div>
                   <div style={{ fontSize: 12, color: 'var(--mid)' }}>
-                    {locked ? 'Complete your assessment first' : 'Access your panic cycle document'}
+                    {locked ? 'Complete your assessment first' : 'Build and view your performance system'}
                   </div>
                 </div>
                 {!locked && (
@@ -347,6 +350,7 @@ export default function AthletePortal({ onBack }) {
   const [pin, setPin]                   = useState(null)
   const [intakeCompleted, setIntakeCompleted] = useState(false)
   const [unreadCount, setUnreadCount]   = useState(0)
+  const [panicIntake, setPanicIntake]   = useState(null)
 
   // Try restoring saved session on mount
   useEffect(() => {
@@ -373,12 +377,14 @@ export default function AthletePortal({ onBack }) {
   }, [])
 
   async function refreshDashboard(t, a) {
-    const [completedIds, unread] = await Promise.all([
+    const [completedIds, unread, intake] = await Promise.all([
       fetchCompletedAthleteIds(t.id, t.current_administration),
       fetchAthleteUnreadCount(a.id, t.id),
+      fetchPanicIntakeData(a.id, t.id).catch(() => null),
     ])
     setIntakeCompleted(completedIds.has(a.id))
     setUnreadCount(unread)
+    setPanicIntake(intake)
   }
 
   async function handleSignIn(t, r, a, p) {
@@ -391,7 +397,7 @@ export default function AthletePortal({ onBack }) {
   function handleSignOut() {
     clearSession()
     setTeam(null); setRoster([]); setAthlete(null); setPin(null)
-    setIntakeCompleted(false); setUnreadCount(0)
+    setIntakeCompleted(false); setUnreadCount(0); setPanicIntake(null)
     setScreen(S.CODE)
   }
 
@@ -445,7 +451,10 @@ export default function AthletePortal({ onBack }) {
   )
 
   if (screen === S.CYCLE) return (
-    <CycleDocumentScreen athlete={athlete} team={team} onHome={() => setScreen(S.DASHBOARD)} />
+    <CycleFlow
+      team={team} athlete={athlete} panicIntake={panicIntake}
+      onBack={() => setScreen(S.DASHBOARD)}
+    />
   )
 
   if (screen === S.WELLNESS) return (
@@ -491,6 +500,9 @@ export default function AthletePortal({ onBack }) {
       </nav>
       <div className="cw">
         <div className="box" style={{ maxWidth: 560 }}>
+          {team.logo_url && (
+            <img src={team.logo_url} alt="" style={{ height: 44, width: 'auto', opacity: 0.85, display: 'block', marginBottom: 20 }} />
+          )}
           <div className="tag">{team.name}</div>
           <h2 style={{ marginBottom: 4 }}>Your Messages</h2>
           <p style={{ marginBottom: 24, color: 'var(--mid)', fontSize: 13 }}>

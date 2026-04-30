@@ -70,6 +70,7 @@ function NameScreen({ team, roster, onBack, onSelect }) {
       </nav>
       <div className="cw">
         <div className="box">
+          {team.logo_url && <img src={team.logo_url} alt="" style={{ height: 44, width: 'auto', opacity: 0.85, display: 'block', marginBottom: 20 }} />}
           <div className="tag">{team.name}</div>
           <h2>Select Your Name</h2>
           <div className="fld" style={{marginBottom:16}}>
@@ -151,6 +152,7 @@ function PinScreen({ athlete, team, onBack, onVerified }) {
     <>{navBar}
       <div className="cw">
         <div className="box">
+          {team.logo_url && <img src={team.logo_url} alt="" style={{ height: 44, width: 'auto', opacity: 0.85, display: 'block', marginBottom: 20 }} />}
           <h2>Create Your PIN</h2>
           <p>Set a 4-digit PIN to access your wellness check-ins and cycle document.</p>
           <div className="fld"><label>Choose a PIN</label>{pinInput}</div>
@@ -177,6 +179,7 @@ function PinScreen({ athlete, team, onBack, onVerified }) {
     <>{navBar}
       <div className="cw">
         <div className="box">
+          {team.logo_url && <img src={team.logo_url} alt="" style={{ height: 44, width: 'auto', opacity: 0.85, display: 'block', marginBottom: 20 }} />}
           <h2>Enter Your PIN</h2>
           <p>Welcome back, {athlete.full_name.split(' ')[0]}. Enter your 4-digit PIN to continue.</p>
           <div className="fld"><label>PIN</label>{pinInput}</div>
@@ -225,6 +228,7 @@ export default function WellnessFlow({ onBack }) {
       </nav>
       <div className="cw">
         <div className="box" style={{textAlign:'center'}}>
+          {team.logo_url && <img src={team.logo_url} alt="" style={{ height: 44, width: 'auto', opacity: 0.85, display: 'block', margin: '0 auto 20px' }} />}
           <div style={{fontSize:48,marginBottom:16}}>✅</div>
           <h2>Check-In Complete</h2>
           <p>Thanks {athlete.full_name.split(' ')[0]}! Your wellness check-in has been recorded. See you next {DAY_NAMES[team.wellness_reset_day ?? 1]}.</p>

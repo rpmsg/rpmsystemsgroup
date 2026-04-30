@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { fetchAllTeams, createTeam, updateTeam, deleteTeam } from '../../lib/adminApi'
+import { supabase } from '../../lib/supabase'
 
 const EMPTY = { name: '', team_code: '', season: '', wellness_reset_day: 1 }
+const ALLOWED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp']
 
 export default function AdminTeams() {
   const [teams, setTeams]     = useState([])
@@ -12,6 +14,9 @@ export default function AdminTeams() {
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState('')
   const [confirm, setConfirm] = useState(null)  // team id to delete
+  const [logoFile, setLogoFile]       = useState(null)
+  const [logoPreview, setLogoPreview] = useState('')
+  const [removeLogo, setRemoveLogo]   = useState(false)
 
   useEffect(() => { load() }, [])
 
@@ -25,6 +30,9 @@ export default function AdminTeams() {
     setForm(EMPTY)
     setEditId(null)
     setError('')
+    setLogoFile(null)
+    setLogoPreview('')
+    setRemoveLogo(false)
     setModal('add')
   }
 
@@ -32,20 +40,53 @@ export default function AdminTeams() {
     setForm({ name: team.name, team_code: team.team_code, season: team.season || '', wellness_reset_day: team.wellness_reset_day ?? 1 })
     setEditId(team.id)
     setError('')
+    setLogoFile(null)
+    setLogoPreview(team.logo_url || '')
+    setRemoveLogo(false)
     setModal('edit')
   }
 
-  function closeModal() { setModal(null); setError('') }
+  function closeModal() {
+    setModal(null)
+    setError('')
+    setLogoFile(null)
+    setLogoPreview('')
+    setRemoveLogo(false)
+  }
+
+  function handleLogoChange(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    if (!ALLOWED_LOGO_TYPES.includes(file.type)) { setError('Logo must be PNG, JPG, JPEG, SVG, or WEBP.'); return }
+    if (file.size > 2 * 1024 * 1024) { setError('Logo must be 2MB or smaller.'); return }
+    setLogoFile(file)
+    setLogoPreview(URL.createObjectURL(file))
+    setRemoveLogo(false)
+    setError('')
+  }
 
   async function handleSave() {
     if (!form.name.trim() || !form.team_code.trim()) { setError('Name and team code are required.'); return }
     setSaving(true)
     setError('')
     try {
+      let logo_url = undefined
+      if (logoFile) {
+        const ext = logoFile.name.split('.').pop().toLowerCase()
+        const path = `team_${editId || 'new'}_${Date.now()}.${ext}`
+        const { error: upErr } = await supabase.storage.from('team-logos').upload(path, logoFile, { upsert: true })
+        if (upErr) throw new Error('Logo upload failed: ' + upErr.message)
+        const { data: urlData } = supabase.storage.from('team-logos').getPublicUrl(path)
+        logo_url = urlData.publicUrl
+      } else if (removeLogo) {
+        logo_url = null
+      }
       if (modal === 'add') {
-        await createTeam(form)
+        await createTeam({ ...form, logo_url })
       } else {
-        await updateTeam(editId, { name: form.name.trim(), team_code: form.team_code.trim(), season: form.season.trim(), wellness_reset_day: Number(form.wellness_reset_day) })
+        const fields = { name: form.name.trim(), team_code: form.team_code.trim(), season: form.season.trim(), wellness_reset_day: Number(form.wellness_reset_day) }
+        if (logo_url !== undefined) fields.logo_url = logo_url
+        await updateTeam(editId, fields)
       }
       await load()
       closeModal()
@@ -128,6 +169,28 @@ export default function AdminTeams() {
                   <option key={i} value={i}>{d}</option>
                 ))}
               </select>
+            </div>
+            <div className="fld">
+              <label>Team Logo</label>
+              {logoPreview && !removeLogo ? (
+                <div style={{ marginBottom: 10 }}>
+                  <img src={logoPreview} alt="Logo preview" style={{ height: 48, width: 'auto', display: 'block', marginBottom: 8, borderRadius: 4 }} />
+                  <button
+                    type="button"
+                    className="btn bdanger bsm"
+                    onClick={() => { setRemoveLogo(true); setLogoPreview(''); setLogoFile(null) }}
+                  >
+                    Remove Logo
+                  </button>
+                </div>
+              ) : null}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                onChange={handleLogoChange}
+                style={{ fontSize: 12 }}
+              />
+              <div style={{ fontSize: 11, color: 'var(--mid)', marginTop: 4 }}>PNG, JPG, SVG, or WEBP · Max 2MB</div>
             </div>
             {error && <div className="err">{error}</div>}
           </div>

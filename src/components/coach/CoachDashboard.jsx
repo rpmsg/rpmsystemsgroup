@@ -158,6 +158,9 @@ export default function CoachDashboard({ coach, onSignOut }) {
 
         <div className="dm">
           <div className="dhd">
+            {team.logo_url && (
+              <img src={team.logo_url} alt="" style={{ height: 48, width: 'auto', opacity: 0.85, display: 'block', marginBottom: 10 }} />
+            )}
             <h2>{team.name}</h2>
             <p>Pulse Report · Code: {team.team_code}</p>
           </div>

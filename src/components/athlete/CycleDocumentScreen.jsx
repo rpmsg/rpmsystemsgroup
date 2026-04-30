@@ -1,136 +1,206 @@
-import { useState, useEffect } from 'react'
-import { fetchCycleDocument } from '../../lib/cycleApi'
 import { useHome } from '../../HomeContext'
 
-const SECTIONS = [
-  { key: 'trigger',       icon: '⚡', label: 'Trigger',             sub: 'What sets me off'              },
-  { key: 'emotions',      icon: '🧠', label: 'Emotional Response',   sub: 'How I feel in the moment'      },
-  { key: 'body_response', icon: '💢', label: 'Physical Response',    sub: 'What happens in my body'       },
-  { key: 'behavior',      icon: '🔄', label: 'Behavioral Response',  sub: 'What I do when it hits'        },
-  { key: 'aftermath',     icon: '🌊', label: 'Aftermath',            sub: 'How it typically resolves'     },
-]
+// ── SVG circular diagram (approved cycles only) ───────────────
+const CX = 260, CY = 240, R = 150, NR = 70
 
-export default function CycleDocumentScreen({ athlete, team, onHome }) {
+function nodePos(angleDeg) {
+  const r = angleDeg * Math.PI / 180
+  return { x: CX + R * Math.cos(r), y: CY + R * Math.sin(r) }
+}
+
+const TRUTH  = nodePos(-90)   // (260, 90)
+const RESET  = nodePos(30)    // (390, 315)
+const GOMOVE = nodePos(150)   // (130, 315)
+
+function edgePt(from, to, r) {
+  const dx = to.x - from.x, dy = to.y - from.y
+  const len = Math.sqrt(dx * dx + dy * dy)
+  return { x: from.x + (dx / len) * r, y: from.y + (dy / len) * r }
+}
+
+// Arrow endpoints (start from source edge, end at dest edge)
+const ARR1_S = edgePt(TRUTH, RESET, NR)
+const ARR1_E = edgePt(RESET, TRUTH, NR)
+const ARR2_S = edgePt(RESET, GOMOVE, NR)
+const ARR2_E = edgePt(GOMOVE, RESET, NR)
+const ARR3_S = edgePt(GOMOVE, TRUTH, NR)
+const ARR3_E = edgePt(TRUTH, GOMOVE, NR)
+
+// Arrowhead: tip at (x,y), pointing in direction of angleDeg
+function Arrowhead({ x, y, angle, size = 11 }) {
+  const r = angle * Math.PI / 180
+  const b1x = x - size * Math.cos(r) + (size * 0.45) * Math.sin(r)
+  const b1y = y - size * Math.sin(r) - (size * 0.45) * Math.cos(r)
+  const b2x = x - size * Math.cos(r) - (size * 0.45) * Math.sin(r)
+  const b2y = y - size * Math.sin(r) + (size * 0.45) * Math.cos(r)
+  return <polygon points={`${x},${y} ${b1x},${b1y} ${b2x},${b2y}`} fill="#43B878" />
+}
+
+// Arrival angle: direction from source center toward dest center
+function arrivalAngle(from, to) {
+  return Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI
+}
+
+function CycleCircle({ cycle }) {
+  const nodes = [
+    { pos: TRUTH,  label: 'MY TRUTH',   text: cycle.anchor_statement },
+    { pos: RESET,  label: 'MY RESET',   text: cycle.physical_reset },
+    { pos: GOMOVE, label: 'MY GO MOVE', text: cycle.go_move },
+  ]
+
+  return (
+    <svg viewBox="0 0 520 460" width="100%" style={{ maxWidth: 520, display: 'block', margin: '0 auto' }}>
+      {/* Arrows — quadratic bezier curves tracing clockwise outside the triangle */}
+      <path d={`M ${ARR1_S.x} ${ARR1_S.y} Q 433 140 ${ARR1_E.x} ${ARR1_E.y}`}
+        fill="none" stroke="#1A7A4A" strokeWidth="2.5" strokeLinecap="round" />
+      <Arrowhead x={ARR1_E.x} y={ARR1_E.y} angle={arrivalAngle(TRUTH, RESET)} />
+
+      <path d={`M ${ARR2_S.x} ${ARR2_S.y} Q 260 448 ${ARR2_E.x} ${ARR2_E.y}`}
+        fill="none" stroke="#1A7A4A" strokeWidth="2.5" strokeLinecap="round" />
+      <Arrowhead x={ARR2_E.x} y={ARR2_E.y} angle={arrivalAngle(RESET, GOMOVE)} />
+
+      <path d={`M ${ARR3_S.x} ${ARR3_S.y} Q 87 140 ${ARR3_E.x} ${ARR3_E.y}`}
+        fill="none" stroke="#1A7A4A" strokeWidth="2.5" strokeLinecap="round" />
+      <Arrowhead x={ARR3_E.x} y={ARR3_E.y} angle={arrivalAngle(GOMOVE, TRUTH)} />
+
+      {/* Node circles */}
+      {nodes.map(({ pos: p, label }) => (
+        <g key={label}>
+          <circle cx={p.x} cy={p.y} r={NR} fill="#1a1a1a" stroke="#1A7A4A" strokeWidth="2" />
+          <text x={p.x} y={p.y - 4} textAnchor="middle"
+            fill="#43B878" fontSize="10" fontWeight="700"
+            letterSpacing="1.5" fontFamily="system-ui, -apple-system, sans-serif">
+            {label}
+          </text>
+        </g>
+      ))}
+    </svg>
+  )
+}
+
+// ── Pill badge ────────────────────────────────────────────────
+function StatusBadge({ status }) {
+  if (status === 'approved')      return <span className="pill pill-green">Approved</span>
+  if (status === 'returned')      return <span className="pill pill-red">Returned for Revision</span>
+  return <span className="pill pill-amber">Pending Review</span>
+}
+
+// ── Main export ───────────────────────────────────────────────
+export default function CycleDocumentScreen({ cycle, onBack, logoUrl }) {
   const goHome = useHome()
-  const [doc, setDoc]       = useState(undefined)
-  const [loading, setLoading] = useState(true)
+  const createdDate = new Date(cycle.created_at).toLocaleDateString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric',
+  })
 
-  useEffect(() => {
-    fetchCycleDocument(athlete.id, team.id)
-      .then(setDoc)
-      .catch(() => setDoc(null))
-      .finally(() => setLoading(false))
-  }, [athlete.id, team.id])
+  const isApproved = cycle.status === 'approved'
+  const isReturned = cycle.status === 'returned'
 
-  const releasedDate = doc?.released_at
-    ? new Date(doc.released_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-    : null
-
-  if (loading) return (
-    <>
-      <nav><img src="/logo.svg" alt="RPM Systems Group" style={{height:36}} /><div className="ntag">My Cycle</div></nav>
-      <div className="cw"><div className="spinner" /></div>
-    </>
-  )
-
-  // No document or not released yet
-  if (!doc || !doc.released) return (
-    <>
-      <nav>
-        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36,cursor:'pointer'}} onClick={goHome} />
-        <div className="ntag">My Cycle</div>
-        <button className="btn bo bsm" onClick={onHome}>← Home</button>
-      </nav>
-      <div className="cw">
-        <div className="box" style={{ textAlign: 'center', padding: '48px 32px' }}>
-          <div style={{ fontSize: 40, marginBottom: 20 }}>🔄</div>
-          <h2 style={{ marginBottom: 12 }}>Cycle in Review</h2>
-          <p style={{ color: 'var(--mid)', fontSize: 14, lineHeight: 1.7, maxWidth: 380, margin: '0 auto 24px' }}>
-            Your panic cycle document is currently in review. You'll be able to access it here once it has been released to you.
-          </p>
-          <button className="btn bo" onClick={onHome}>← Back to Home</button>
-        </div>
-      </div>
-    </>
-  )
-
-  // Released — show full document
   return (
     <>
       <nav>
-        <img src="/logo.svg" alt="RPM Systems Group" style={{height:36,cursor:'pointer'}} onClick={goHome} />
-        <div className="ntag">My Cycle</div>
-        <button className="btn bo bsm" onClick={onHome}>← Home</button>
+        <img src="/logo.svg" alt="RPM Systems Group" style={{ height: 36, cursor: 'pointer' }} onClick={goHome} />
+        <div className="ntag">Performance Cycle</div>
+        <button className="btn bo bsm" onClick={onBack}>← Back</button>
       </nav>
-      <div className="cw">
-        <div className="box" style={{ maxWidth: 680, margin: '0 auto' }}>
+      <div className="cw" style={{ alignItems: 'flex-start', padding: '40px 24px' }}>
+        <div style={{ maxWidth: 640, width: '100%', margin: '0 auto' }}>
 
-          {/* Document header */}
-          <div style={{ borderBottom: '1px solid var(--bdr)', paddingBottom: 20, marginBottom: 28 }}>
-            <div style={{ fontSize: 10, letterSpacing: 3, color: 'var(--mid)', textTransform: 'uppercase', marginBottom: 10 }}>
-              RPM Systems Group · Panic Cycle Profile
+          {/* Header */}
+          <div style={{ marginBottom: 24 }}>
+            {logoUrl && (
+              <img src={logoUrl} alt="" style={{ height: 44, width: 'auto', opacity: 0.85, display: 'block', marginBottom: 20 }} />
+            )}
+            <div style={{ fontSize: 11, color: 'var(--mid)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>
+              Performance Cycle · {createdDate}
             </div>
-            <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>{athlete.full_name}</h2>
-            <p style={{ color: 'var(--mid)', fontSize: 13 }}>
-              {team.name}
-              {releasedDate && <span> · Released {releasedDate}</span>}
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0, fontSize: 26, fontWeight: 800 }}>{cycle.cycle_name}</h2>
+              <StatusBadge status={cycle.status} />
+            </div>
           </div>
 
-          {/* Intro */}
-          <div style={{ background: 'var(--d3)', borderRadius: 10, padding: '16px 18px', marginBottom: 28 }}>
-            <p style={{ fontSize: 13, color: 'var(--mid)', lineHeight: 1.7, margin: 0 }}>
-              Your panic cycle is the pattern your mind and body follow when you face pressure or adversity. Understanding it is the first step to breaking it. This document reflects your responses and your coach's review — use it as a reference before and after high-pressure moments.
-            </p>
-          </div>
+          {/* Returned feedback */}
+          {isReturned && cycle.practitioner_note && (
+            <div style={{ background: 'rgba(192,57,43,.1)', border: '1px solid rgba(192,57,43,.35)', borderRadius: 10, padding: '16px 18px', marginBottom: 24 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#e05a4a', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                ✏ Practitioner Feedback — Action Required
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--w)', lineHeight: 1.7, margin: 0 }}>
+                {cycle.practitioner_note}
+              </p>
+            </div>
+          )}
 
-          {/* Cycle sections */}
-          {SECTIONS.map((s, i) => (
-            <div key={s.key} style={{ marginBottom: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: '50%',
-                  background: 'var(--d3)', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', fontSize: 16, flexShrink: 0
-                }}>
-                  {s.icon}
-                </div>
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gl)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                    Step {i + 1} — {s.label}
+          {/* Approved note */}
+          {isApproved && cycle.practitioner_note && (
+            <div style={{ background: 'rgba(26,122,74,.1)', border: '1px solid rgba(26,122,74,.3)', borderRadius: 10, padding: '14px 18px', marginBottom: 24 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gl)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+                ✓ Practitioner Note
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--w)', lineHeight: 1.7, margin: 0 }}>
+                {cycle.practitioner_note}
+              </p>
+            </div>
+          )}
+
+          {/* Approved: circular diagram */}
+          {isApproved && (
+            <div style={{ background: 'var(--d2)', border: '1px solid var(--bdr)', borderRadius: 14, padding: '28px 20px', marginBottom: 20 }}>
+              <CycleCircle cycle={cycle} />
+
+              {/* Content cards below diagram */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 24 }}>
+                {[
+                  { label: 'MY TRUTH',   value: cycle.anchor_statement },
+                  { label: 'MY RESET',   value: cycle.physical_reset },
+                  { label: 'MY GO MOVE', value: cycle.go_move },
+                ].map(({ label, value }) => (
+                  <div key={label} style={{ background: 'var(--d3)', borderRadius: 8, padding: '14px 14px', borderTop: '2px solid #1A7A4A' }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: '#43B878', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>
+                      {label}
+                    </div>
+                    <p style={{ fontSize: 12, color: 'var(--w)', lineHeight: 1.6, margin: 0 }}>
+                      {value}
+                    </p>
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--mid)' }}>{s.sub}</div>
-                </div>
-              </div>
-              <div style={{ background: 'var(--d3)', borderRadius: 8, padding: '14px 16px', marginLeft: 42 }}>
-                <p style={{ fontSize: 14, color: 'var(--w)', lineHeight: 1.7, margin: 0 }}>
-                  {doc[s.key] || <span style={{ color: 'var(--mid)', fontStyle: 'italic' }}>Not yet completed</span>}
-                </p>
-              </div>
-            </div>
-          ))}
-
-          {/* Coaching note */}
-          {doc.coaching_note && (
-            <div style={{ marginTop: 28, borderTop: '1px solid var(--bdr)', paddingTop: 24 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#f0b030', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
-                ✏ Coaching Note
-              </div>
-              <div style={{ background: 'var(--d3)', borderRadius: 8, padding: '14px 16px', borderLeft: '3px solid #f0b030' }}>
-                <p style={{ fontSize: 14, color: 'var(--w)', lineHeight: 1.7, margin: 0 }}>
-                  {doc.coaching_note}
-                </p>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Footer */}
-          <div style={{ marginTop: 32, borderTop: '1px solid var(--bdr)', paddingTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <p style={{ fontSize: 11, color: 'var(--mid)', margin: 0 }}>
-              🔒 Personal and confidential — for your use only
-            </p>
-            <button className="btn bo bsm" onClick={onHome}>← Home</button>
+          {/* Pending / Returned: text summary */}
+          {!isApproved && (
+            <div style={{ background: 'var(--d2)', border: '1px solid var(--bdr)', borderRadius: 14, overflow: 'hidden', marginBottom: 20 }}>
+              <div style={{ padding: '16px 22px', borderBottom: '1px solid var(--bdr)', background: 'var(--d3)' }}>
+                <div style={{ fontSize: 11, color: 'var(--mid)' }}>
+                  {isReturned
+                    ? 'Review the feedback above, then use the Revise button to update your cycle.'
+                    : 'Your RPM practitioner will review and sign off on this cycle shortly.'}
+                </div>
+              </div>
+              {[
+                { step: 'Step 1', label: 'My Truth', value: cycle.anchor_statement },
+                { step: 'Step 2', label: 'My Reset', value: cycle.physical_reset },
+                { step: 'Step 3', label: 'My Go Move', value: cycle.go_move },
+              ].map(({ step, label, value }) => (
+                <div key={step} style={{ padding: '16px 22px', borderBottom: '1px solid var(--bdr)' }}>
+                  <div style={{ fontSize: 10, letterSpacing: 1.5, color: '#43B878', textTransform: 'uppercase', fontWeight: 700, marginBottom: 6 }}>
+                    {step} — {label}
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--w)', lineHeight: 1.7, margin: 0 }}>
+                    {value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Fear category */}
+          <div style={{ fontSize: 12, color: 'var(--mid)', marginBottom: 24 }}>
+            Fear category addressed: <span style={{ color: 'var(--w)' }}>{cycle.fear_category}</span>
           </div>
+
+          <button className="btn bo" onClick={onBack}>← Back to My Cycles</button>
 
         </div>
       </div>

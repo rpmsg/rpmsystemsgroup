@@ -14,6 +14,9 @@ export default function ConfirmScreen({ team, athlete, pc, onHome }) {
         <span />
       </nav>
       <div className="cfwrap">
+        {team.logo_url && (
+          <img src={team.logo_url} alt="" style={{ height: 44, width: 'auto', opacity: 0.85, display: 'block', margin: '0 auto 20px' }} />
+        )}
         <div className="ico">✅</div>
         <h2>Assessment Complete</h2>
         <p>Your responses have been saved. Your RPM practitioner will walk you through your results in your next session.</p>

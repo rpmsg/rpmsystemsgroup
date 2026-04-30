@@ -15,11 +15,13 @@ export default function PulseReportModal({ team, scores, scoresByAdmin, availabl
           body > *:not(.print-report) { display: none !important; }
           .print-report { display: block !important; position: static !important; background: white !important; color: black !important; }
           .no-print { display: none !important; }
+          .print-only { display: flex !important; }
           .modal-overlay { position: static !important; background: white !important; }
           .modal { max-width: 100% !important; max-height: none !important; box-shadow: none !important; border: none !important; background: white !important; color: black !important; }
           .cct { color: #555 !important; }
           svg text { fill: #333 !important; }
         }
+        .print-only { display: none; }
       `}</style>
 
       <div className="modal-overlay on print-report" onClick={onClose}>
@@ -28,6 +30,14 @@ export default function PulseReportModal({ team, scores, scoresByAdmin, availabl
           style={{ maxWidth: 760, maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
           onClick={e => e.stopPropagation()}
         >
+          {/* PDF-only logo header */}
+          <div className="print-only" style={{ padding: '16px 24px', borderBottom: '1px solid #ddd', justifyContent: 'space-between', alignItems: 'center' }}>
+            <img src="/logo.svg" alt="RPM Systems Group" style={{ height: 40 }} />
+            {team.logo_url && (
+              <img src={team.logo_url} alt="" style={{ height: 40, width: 'auto', opacity: 0.85 }} />
+            )}
+          </div>
+
           <div className="modal-head">
             <div>
               <h3>📊 Pulse Report — {team.name}</h3>

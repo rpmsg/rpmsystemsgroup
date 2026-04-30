@@ -406,6 +406,9 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
         </div>
 
         <div className="im">
+          {team.logo_url && (
+            <img src={team.logo_url} alt="" style={{ height: 44, width: 'auto', opacity: 0.85, display: 'block', marginBottom: 24 }} />
+          )}
           {!smOnly && step === 'brk-start' && (
             <div className="brk on">
               <div className="bico">🧠</div>
