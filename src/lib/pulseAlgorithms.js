@@ -77,6 +77,84 @@ export function buildRoomingPairs(scores) {
   return { recommended: recommended.slice(0, 8), caution: caution.slice(0, 8) }
 }
 
+// ── Player-to-player relationship comparison ──────────────────
+
+const NEG_Q_TYPES = new Set(['sm10', 'sm11', 'sm12'])
+
+const ZONE_ADJACENTS = {
+  'Core Influencer':   ['Polarizing Figure', 'Isolation Risk'],
+  'Polarizing Figure': ['Core Influencer',   'Rejection Risk'],
+  'Rejection Risk':    ['Polarizing Figure', 'Isolation Risk'],
+  'Isolation Risk':    ['Core Influencer',   'Rejection Risk'],
+}
+
+// Returns 'Low' | 'Moderate' | 'High'
+// Nomination data never leaves this function — only the result is returned.
+export function calculateFrictionProximity(playerA, playerB, nominations, roster, allScores) {
+  const negNoms = nominations.filter(n => NEG_Q_TYPES.has(n.question_type))
+  const rosterA = roster.find(r => r.full_name === playerA.athlete_name)
+  const rosterB = roster.find(r => r.full_name === playerB.athlete_name)
+  const idA = rosterA?.id
+  const idB = rosterB?.id
+  const nameA = playerA.athlete_name
+  const nameB = playerB.athlete_name
+
+  // Handles both UUID and name storage formats for nominee fields
+  function nominatesNeg(responderId, responderName, targetId, targetName) {
+    return negNoms.some(n =>
+      (n.athlete_id === responderId || n.athlete_id === responderName) &&
+      (n.nominee_1 === targetId || n.nominee_1 === targetName ||
+       n.nominee_2 === targetId || n.nominee_2 === targetName)
+    )
+  }
+
+  if (nominatesNeg(idA, nameA, idB, nameB) || nominatesNeg(idB, nameB, idA, nameA)) return 'High'
+
+  const avgFriction = allScores.length
+    ? allScores.reduce((s, p) => s + (p.negative_mentions || 0), 0) / allScores.length
+    : 0
+  if ((playerA.negative_mentions || 0) > avgFriction && (playerB.negative_mentions || 0) > avgFriction) return 'Moderate'
+
+  return 'Low'
+}
+
+// Returns 0–100
+export function calculateCohesionScore(playerA, playerB, frictionProximity, wellnessA, wellnessB) {
+  const roleA = playerA.social_role
+  const roleB = playerB.social_role
+
+  let zonePoints = 10
+  if (roleA === roleB) zonePoints = 40
+  else if (ZONE_ADJACENTS[roleA]?.includes(roleB)) zonePoints = 25
+
+  const frictionPoints = frictionProximity === 'Low' ? 30 : frictionProximity === 'Moderate' ? 15 : 0
+
+  const diff = Math.abs((playerA.positive_mentions || 0) - (playerB.positive_mentions || 0))
+  const mentionPoints = diff <= 3 ? 20 : diff <= 6 ? 10 : 5
+
+  let wellnessPoints = 0
+  if (wellnessA?.mental_score != null && wellnessB?.mental_score != null) {
+    const mDiff = Math.abs(wellnessA.mental_score - wellnessB.mental_score)
+    wellnessPoints = mDiff <= 2 ? 10 : mDiff <= 4 ? 5 : 0
+  }
+
+  return zonePoints + frictionPoints + mentionPoints + wellnessPoints
+}
+
+// Returns 'Strong Alignment' | 'Complementary' | 'Tension Risk' | 'Friction Risk'
+export function determineRelationshipType(playerA, playerB, frictionProximity) {
+  const roleA = playerA.social_role
+  const roleB = playerB.social_role
+  const sameZone = roleA === roleB
+  const posDiff = Math.abs((playerA.positive_mentions || 0) - (playerB.positive_mentions || 0))
+
+  if (frictionProximity === 'High') return 'Friction Risk'
+  if (sameZone && frictionProximity === 'Low') return 'Strong Alignment'
+  if (!sameZone && frictionProximity === 'Low') return 'Complementary'
+  if (!sameZone && frictionProximity === 'Moderate' && posDiff > 6) return 'Tension Risk'
+  return 'Tension Risk'
+}
+
 // ── Comparison helpers ────────────────────────────────────────
 export function cohesionScore(scores) {
   if (!scores?.length) return 0

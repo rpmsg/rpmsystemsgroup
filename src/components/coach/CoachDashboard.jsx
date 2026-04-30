@@ -361,6 +361,10 @@ export default function CoachDashboard({ coach, onSignOut }) {
           athlete={selectedAthlete.athlete}
           score={selectedAthlete.score}
           totalAthletes={scores.length}
+          allScores={scores}
+          nominations={data.nominations}
+          roster={roster}
+          teamId={team.id}
           onClose={() => setSelectedAthlete(null)}
         />
       )}
