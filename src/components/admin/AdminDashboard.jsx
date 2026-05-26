@@ -7,15 +7,17 @@ import AdminCycles from './AdminCycles'
 import AdminQuestions from './AdminQuestions'
 import AdminSocialMap from './AdminSocialMap'
 import AdminMessages from './AdminMessages'
+import CoachViewTab from './CoachViewTab'
 
 const TABS = [
-  { id: 'teams',     label: 'Teams' },
-  { id: 'coaches',   label: 'Coaches' },
-  { id: 'roster',    label: 'Roster' },
-  { id: 'cycles',    label: 'Panic Cycles' },
-  { id: 'socialmap', label: 'Social Map' },
-  { id: 'questions', label: 'Questions' },
-  { id: 'messages',  label: 'Messages' },
+  { id: 'teams',      label: 'Teams' },
+  { id: 'coaches',    label: 'Coaches' },
+  { id: 'roster',     label: 'Roster' },
+  { id: 'cycles',     label: 'Panic Cycles' },
+  { id: 'socialmap',  label: 'Social Map' },
+  { id: 'questions',  label: 'Questions' },
+  { id: 'messages',   label: 'Messages' },
+  { id: 'coachview',  label: '👁 Coach View' },
 ]
 
 export default function AdminDashboard({ onLogout, onBack }) {
@@ -47,6 +49,7 @@ export default function AdminDashboard({ onLogout, onBack }) {
           {tab === 'socialmap' && <AdminSocialMap />}
           {tab === 'questions' && <AdminQuestions />}
           {tab === 'messages'  && <AdminMessages />}
+          {tab === 'coachview' && <CoachViewTab />}
         </div>
       </div>
     </>

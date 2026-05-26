@@ -27,42 +27,50 @@ function tally(rows, field, total) {
     })
 }
 
-export default function CoachDashboard({ coach, onSignOut }) {
+export default function CoachDashboard({ coach, onSignOut, adminTeamId }) {
+  const isAdminPreview = !!adminTeamId
+  const teamId = adminTeamId || coach?.team_id
   const goHome = useHome()
   const [data, setData]               = useState(null)
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState('')
-  const [showPassModal, setShowPassModal]     = useState(coach.must_change_password)
+  const [showPassModal, setShowPassModal]     = useState(!isAdminPreview && !!coach?.must_change_password)
   const [selectedAthlete, setSelectedAthlete] = useState(null)
   const [showPulseReport, setShowPulseReport] = useState(false)
   const [activeTab, setActiveTab]             = useState('dashboard')
 
   useEffect(() => {
-    fetchDashboardData(coach.team_id)
+    fetchDashboardData(teamId)
       .then(setData)
       .catch(() => setError('Connection error. Check your internet and refresh.'))
       .finally(() => setLoading(false))
-  }, [coach.team_id])
+  }, [teamId])
 
   async function handleChangePassword(currentPass, newPass, forced) {
     await changePassword(coach.email, currentPass, newPass, forced)
   }
 
-  if (loading) return (
-    <>
-      <nav><div className="logo">RPM<span>.</span>SG</div><div className="ntag">Coach Dashboard</div><span /></nav>
-      <div className="cw"><div className="spinner" /></div>
-    </>
-  )
+  if (loading) {
+    if (isAdminPreview) return <div className="cw"><div className="spinner" /></div>
+    return (
+      <>
+        <nav><div className="logo">RPM<span>.</span>SG</div><div className="ntag">Coach Dashboard</div><span /></nav>
+        <div className="cw"><div className="spinner" /></div>
+      </>
+    )
+  }
 
-  if (error) return (
-    <>
-      <nav><div className="logo">RPM<span>.</span>SG</div><div className="ntag">Coach Dashboard</div>
-        <button className="btn bo bsm" onClick={onSignOut}>← Sign Out</button>
-      </nav>
-      <div className="cw"><div className="box"><p style={{ color: 'var(--rl)' }}>{error}</p></div></div>
-    </>
-  )
+  if (error) {
+    if (isAdminPreview) return <div className="cw"><div className="box"><p style={{ color: 'var(--rl)' }}>{error}</p></div></div>
+    return (
+      <>
+        <nav><div className="logo">RPM<span>.</span>SG</div><div className="ntag">Coach Dashboard</div>
+          <button className="btn bo bsm" onClick={onSignOut}>← Sign Out</button>
+        </nav>
+        <div className="cw"><div className="box"><p style={{ color: 'var(--rl)' }}>{error}</p></div></div>
+      </>
+    )
+  }
 
   const { team, roster, panic } = data
 
@@ -133,17 +141,35 @@ export default function CoachDashboard({ coach, onSignOut }) {
 
   return (
     <>
-      <nav>
-        <div className="logo" onClick={goHome} style={{cursor:'pointer'}}>RPM<span>.</span>SG</div>
-        <div className="ntag">Coach Dashboard</div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      {!isAdminPreview && (
+        <nav>
+          <div className="logo" onClick={goHome} style={{cursor:'pointer'}}>RPM<span>.</span>SG</div>
+          <div className="ntag">Coach Dashboard</div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {scores.length > 0 && (
+              <button className="btn bp bsm" onClick={() => setShowPulseReport(true)}>📊 Pulse Report</button>
+            )}
+            <button className="btn bo bsm" onClick={() => setShowPassModal(true)}>🔑 Change Password</button>
+            <button className="btn bo bsm" onClick={onSignOut}>← Sign Out</button>
+          </div>
+        </nav>
+      )}
+
+      {isAdminPreview && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: 'var(--d4)', border: '1px solid var(--bdr)', borderRadius: 6,
+          padding: '8px 14px', marginBottom: 16, fontSize: 12, color: 'var(--mid)',
+        }}>
+          <span>
+            <span style={{ color: 'var(--g)', fontWeight: 600 }}>Admin Preview</span>
+            {' — '}viewing as coach for <strong style={{ color: 'var(--w)' }}>{team.name}</strong>
+          </span>
           {scores.length > 0 && (
             <button className="btn bp bsm" onClick={() => setShowPulseReport(true)}>📊 Pulse Report</button>
           )}
-          <button className="btn bo bsm" onClick={() => setShowPassModal(true)}>🔑 Change Password</button>
-          <button className="btn bo bsm" onClick={onSignOut}>← Sign Out</button>
         </div>
-      </nav>
+      )}
 
       <div className="dl">
         <div className="dsb">
@@ -348,7 +374,7 @@ export default function CoachDashboard({ coach, onSignOut }) {
         </div>
       </div>
 
-      {showPassModal && (
+      {!isAdminPreview && showPassModal && (
         <ChangePasswordModal
           forced={coach.must_change_password}
           onClose={() => setShowPassModal(false)}
