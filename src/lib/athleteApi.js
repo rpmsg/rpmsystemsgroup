@@ -1,8 +1,63 @@
 import { supabase } from './supabase'
 
-export async function fetchCustomQuestions() {
-  const { data } = await supabase.from('custom_questions').select('*')
+export async function fetchCustomQuestions(teamId) {
+  const { data } = await supabase
+    .from('custom_questions')
+    .select('*')
+    .eq('team_id', teamId)
   return data || []
+}
+
+export async function fetchQuestionsFromSupabase(surveyType, setNumber) {
+  let q = supabase
+    .from('questions')
+    .select('question_key, question_number, dimension, question_type, input_type, max_selections, question_text, subtitle, question_options(option_text, display_order, is_active)')
+    .eq('survey_type', surveyType)
+    .eq('is_active', true)
+    .order('question_number')
+
+  if (surveyType === 'panic_cycle') {
+    q = q.is('set_number', null)
+  } else {
+    q = q.eq('set_number', setNumber)
+  }
+
+  const { data, error } = await q
+  if (error) throw error
+
+  const isSM = surveyType === 'social_map'
+  const prefix = isSM ? 'Social Map' : 'Panic Cycle'
+
+  return (data || []).map(row => {
+    const opts = (row.question_options || [])
+      .filter(o => o.is_active)
+      .sort((a, b) => a.display_order - b.display_order)
+      .map(o => o.option_text)
+
+    const mapped = {
+      id:   row.question_key,
+      n:    isSM ? row.question_number + 11 : row.question_number,
+      meta: `${prefix} — ${row.dimension}`,
+      q:    row.question_text,
+    }
+
+    if (row.subtitle) mapped.sub = row.subtitle
+
+    if (isSM) {
+      mapped.positive = row.question_type === 'positive'
+      if (!row.subtitle) mapped.sub = 'Select up to 2 teammates.'
+    } else {
+      mapped.type = row.input_type
+      if (row.input_type === 'multi') mapped.max = row.max_selections
+      if (row.input_type === 'text') {
+        mapped.placeholder = row.subtitle || 'Write your response here...'
+      } else {
+        mapped.choices = opts
+      }
+    }
+
+    return mapped
+  })
 }
 
 export async function lookupTeamCode(code) {

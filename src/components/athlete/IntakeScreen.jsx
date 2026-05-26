@@ -1,24 +1,9 @@
 import { useState, useEffect } from 'react'
 import { PC_QUESTIONS, SM_QUESTIONS, SM_QUESTIONS_SET2 } from './questions'
-import { fetchRosterNames, fetchCustomQuestions, submitAssessment } from '../../lib/athleteApi'
+import { fetchRosterNames, fetchQuestionsFromSupabase, submitAssessment } from '../../lib/athleteApi'
 import { useHome } from '../../HomeContext'
 import { ADMIN_LABELS } from '../../constants'
 
-function mergeQuestions(defaults, overrides) {
-  const map = {}
-  overrides.forEach(o => { map[o.question_id] = o })
-  return defaults.map(q => {
-    const o = map[q.id]
-    if (!o) return q
-    return {
-      ...q,
-      ...(o.meta          && { meta: o.meta }),
-      ...(o.question_text && { q:    o.question_text }),
-      ...(o.sub_text      && { sub:  o.sub_text }),
-      ...(o.choices && Array.isArray(o.choices) && o.choices.length && { choices: o.choices }),
-    }
-  })
-}
 
 function SidebarItem({ label, state }) {
   return (
@@ -185,19 +170,37 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    Promise.all([
-      fetchRosterNames(team.id),
-      fetchCustomQuestions(),
-    ]).then(([names, customs]) => {
-      setRoster(names)
-      if (!smOnly) setPcQ(mergeQuestions(PC_QUESTIONS, customs))
-      setSmQ(mergeQuestions(smDefaultQuestions, customs))
-    }).catch(() => {
-      setRoster([])
-    }).finally(() => setLoadingQ(false))
+    let cancelled = false
+
+    async function load() {
+      try {
+        const [names, pcData, smData] = await Promise.all([
+          fetchRosterNames(team.id),
+          smOnly ? Promise.resolve([]) : fetchQuestionsFromSupabase('panic_cycle', null),
+          fetchQuestionsFromSupabase('social_map', questionSet),
+        ])
+        if (cancelled) return
+        setRoster(names)
+        if (!smOnly && pcData.length > 0) setPcQ(pcData)
+        if (smData.length > 0) setSmQ(smData)
+      } catch {
+        // fall back to hardcoded questions (already set as initial state)
+        try {
+          const names = await fetchRosterNames(team.id)
+          if (!cancelled) setRoster(names)
+        } catch {}
+      } finally {
+        if (!cancelled) setLoadingQ(false)
+      }
+    }
+
+    load()
     const warn = e => { e.preventDefault(); e.returnValue = '' }
     window.addEventListener('beforeunload', warn)
-    return () => window.removeEventListener('beforeunload', warn)
+    return () => {
+      cancelled = true
+      window.removeEventListener('beforeunload', warn)
+    }
   }, [team.id])
 
   // ── Validation ────────────────────────────────────────────

@@ -220,23 +220,127 @@ export async function advanceAdministration(teamId, newAdmin) {
 }
 
 // ── Questions ─────────────────────────────────────────────────
-export async function fetchCustomQuestions() {
-  const { data, error } = await supabase.from('custom_questions').select('*')
+export async function fetchCustomQuestions(teamId) {
+  const { data, error } = await supabase
+    .from('custom_questions')
+    .select('*')
+    .eq('team_id', teamId)
   if (error) throw error
   return data || []
 }
 
-export async function saveCustomQuestion(questionId, fields) {
+export async function saveCustomQuestion(teamId, questionId, questionSet, fields) {
   const { error } = await supabase
     .from('custom_questions')
     .upsert(
-      { question_id: questionId, ...fields, updated_at: new Date().toISOString() },
-      { onConflict: 'question_id' }
+      { team_id: teamId, question_id: questionId, question_set: questionSet, ...fields, updated_at: new Date().toISOString() },
+      { onConflict: 'team_id,question_id,question_set' }
     )
   if (error) throw error
 }
 
-export async function resetCustomQuestion(questionId) {
-  const { error } = await supabase.from('custom_questions').delete().eq('question_id', questionId)
+export async function resetCustomQuestion(teamId, questionId, questionSet) {
+  const { error } = await supabase
+    .from('custom_questions')
+    .delete()
+    .eq('team_id', teamId)
+    .eq('question_id', questionId)
+    .eq('question_set', questionSet)
   if (error) throw error
+}
+
+// ── Questions Table (new system) ──────────────────────────────
+
+export async function fetchQuestionList(surveyType, setNumber) {
+  let q = supabase
+    .from('questions')
+    .select('*, question_options(id, option_text, display_order, is_active)')
+    .eq('survey_type', surveyType)
+    .order('question_number')
+
+  if (surveyType === 'panic_cycle') {
+    q = q.is('set_number', null)
+  } else {
+    q = q.eq('set_number', setNumber)
+  }
+
+  const { data, error } = await q
+  if (error) throw error
+  return (data || []).map(row => ({
+    ...row,
+    question_options: (row.question_options || [])
+      .sort((a, b) => a.display_order - b.display_order),
+  }))
+}
+
+export async function createQuestion(fields, optionTexts) {
+  const { data, error } = await supabase
+    .from('questions')
+    .insert({ ...fields, updated_at: new Date().toISOString() })
+    .select()
+    .single()
+  if (error) throw error
+
+  if (optionTexts && optionTexts.length > 0) {
+    const rows = optionTexts.map((t, i) => ({
+      question_id: data.id, option_text: t, display_order: i, is_active: true,
+    }))
+    const { error: e2 } = await supabase.from('question_options').insert(rows)
+    if (e2) throw e2
+  }
+  return data
+}
+
+export async function saveQuestion(id, fields, optionTexts) {
+  const { error } = await supabase
+    .from('questions')
+    .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+
+  if (optionTexts !== null) {
+    await supabase.from('question_options').delete().eq('question_id', id)
+    if (optionTexts.length > 0) {
+      const rows = optionTexts.map((t, i) => ({
+        question_id: id, option_text: t, display_order: i, is_active: true,
+      }))
+      const { error: e2 } = await supabase.from('question_options').insert(rows)
+      if (e2) throw e2
+    }
+  }
+}
+
+export async function deactivateQuestion(id) {
+  const { error } = await supabase
+    .from('questions')
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function restoreQuestion(id) {
+  const { error } = await supabase
+    .from('questions')
+    .update({ is_active: true, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function fetchTeamsWithCompletions() {
+  const [teamsRes, scoresRes] = await Promise.all([
+    supabase.from('teams').select('id, name').order('name'),
+    supabase.from('pulse_report_scores').select('team_id, administration').limit(5000),
+  ])
+  if (teamsRes.error) throw teamsRes.error
+
+  const adminsMap = {}
+  ;(scoresRes.data || []).forEach(r => {
+    if (!adminsMap[r.team_id]) adminsMap[r.team_id] = new Set()
+    adminsMap[r.team_id].add(r.administration)
+  })
+
+  return (teamsRes.data || []).map(t => ({
+    ...t,
+    completedAdministrations: [...(adminsMap[t.id] || [])].sort(),
+  })).filter(t => t.completedAdministrations.length > 0)
 }
