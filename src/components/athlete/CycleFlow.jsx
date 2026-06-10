@@ -390,7 +390,61 @@ function DoneScreen({ cycleName, onBackToList, logoUrl }) {
   )
 }
 
-// ── Panic Loop Section ────────────────────────────────────────
+// ── Panic loop ring helpers ───────────────────────────────────
+function plToRad(deg) { return deg * Math.PI / 180 }
+
+function plOnRing(deg, cx, cy, r) {
+  const a = plToRad(deg)
+  return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) }
+}
+
+function PlRingArrow({ deg, cx, cy, r, color, size = 9 }) {
+  const p = plOnRing(deg, cx, cy, r)
+  const t = plToRad(deg + 90)
+  const b1x = p.x - size * Math.cos(t) + size * 0.4 * Math.sin(t)
+  const b1y = p.y - size * Math.sin(t) - size * 0.4 * Math.cos(t)
+  const b2x = p.x - size * Math.cos(t) - size * 0.4 * Math.sin(t)
+  const b2y = p.y - size * Math.sin(t) + size * 0.4 * Math.cos(t)
+  return <polygon points={`${p.x},${p.y} ${b1x},${b1y} ${b2x},${b2y}`} fill={color} />
+}
+
+// 5 nodes evenly spaced starting at top (-90°)
+const PL_NODES = ['TRIGGER', 'EMOTIONS', 'BODY', 'BEHAVIOR', 'AFTERMATH']
+const PL_MID_ANGLES = [-54, 18, 90, 162, 234]
+const PL_DOC_KEYS = ['trigger', 'emotions', 'body_response', 'behavior', 'aftermath']
+const PL_DOC_LABELS = ['Trigger', 'Emotions', 'Body Response', 'Behavior', 'Aftermath']
+
+function PanicLoopRing({ cycleDoc, selectedIdx, onSelect }) {
+  const W = 340, H = 340, CX = 170, CY = 170, R = 108, NR = 42
+  const color = '#e05a4a'
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ maxWidth: W, display: 'block', margin: '0 auto' }}>
+      <circle cx={CX} cy={CY} r={R} fill="none"
+        stroke={color} strokeWidth="1.5" strokeOpacity="0.22" strokeDasharray="6 5" />
+      {PL_MID_ANGLES.map((a, i) => <PlRingArrow key={i} deg={a} cx={CX} cy={CY} r={R} color={color} />)}
+      <text x={CX} y={CY - 5} textAnchor="middle" fill={color} fontSize="9" fontWeight="700"
+        letterSpacing="2" fontFamily="system-ui, -apple-system, sans-serif" opacity="0.45">PANIC</text>
+      <text x={CX} y={CY + 9} textAnchor="middle" fill={color} fontSize="9" fontWeight="700"
+        letterSpacing="2" fontFamily="system-ui, -apple-system, sans-serif" opacity="0.45">LOOP</text>
+      {PL_NODES.map((label, i) => {
+        const p = plOnRing(-90 + i * 72, CX, CY, R)
+        const sel = i === selectedIdx
+        return (
+          <g key={i} onClick={() => onSelect(i)} style={{ cursor: 'pointer' }}>
+            <circle cx={p.x} cy={p.y} r={NR}
+              fill={sel ? color : '#141414'} stroke={color} strokeWidth={sel ? 0 : 1.5} />
+            <text x={p.x} y={p.y + 5} textAnchor="middle"
+              fill={sel ? '#3a0a0a' : color} fontSize="10" fontWeight="800"
+              fontFamily="system-ui, -apple-system, sans-serif">{label}</text>
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
+// ── Raw responses fields ──────────────────────────────────────
 const RESPONSE_FIELDS = [
   { label: 'Trigger',       key: 'q1_trigger' },
   { label: 'First Signals', key: 'q2_first_signal' },
@@ -405,16 +459,9 @@ const RESPONSE_FIELDS = [
   { label: 'Aftermath',     key: 'q11_aftermath' },
 ]
 
-const DOC_FIELDS = [
-  { label: 'Trigger',       key: 'trigger' },
-  { label: 'Emotions',      key: 'emotions' },
-  { label: 'Body Response', key: 'body_response' },
-  { label: 'Behavior',      key: 'behavior' },
-  { label: 'Aftermath',     key: 'aftermath' },
-]
-
 function PanicLoopSection({ rawResponses, cycleDoc }) {
   const [expanded, setExpanded] = useState(false)
+  const [selectedIdx, setSelectedIdx] = useState(0)
 
   if (!rawResponses) return null
 
@@ -430,20 +477,55 @@ function PanicLoopSection({ rawResponses, cycleDoc }) {
         My Panic Loop
       </div>
 
-      {/* Tier 1 — raw responses, always visible, collapsible */}
-      <div style={{ background: 'var(--d2)', border: '1px solid var(--bdr)', borderRadius: 10, marginBottom: 10, overflow: 'hidden' }}>
+      {/* Tier 2 — released ring or locked state */}
+      {cycleDoc?.released ? (
+        <div style={{ background: 'var(--d2)', border: '1px solid var(--bdr)', borderRadius: 14, padding: '28px 20px 20px', marginBottom: 10 }}>
+          <PanicLoopRing cycleDoc={cycleDoc} selectedIdx={selectedIdx} onSelect={setSelectedIdx} />
+          <div style={{ marginTop: 18, background: 'rgba(224,90,74,.07)', border: '1px solid rgba(224,90,74,.22)', borderRadius: 10, padding: '16px 18px' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#e05a4a', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8 }}>
+              {PL_DOC_LABELS[selectedIdx]}
+            </div>
+            <p style={{ fontSize: 14, color: 'var(--w)', lineHeight: 1.7, margin: 0 }}>
+              {cycleDoc[PL_DOC_KEYS[selectedIdx]] || <span style={{ color: 'var(--mid)', fontStyle: 'italic' }}>Not provided</span>}
+            </p>
+          </div>
+          {cycleDoc.coaching_note && (
+            <div style={{ marginTop: 14, borderTop: '1px solid var(--bdr)', paddingTop: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#f0b030', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 8 }}>
+                Coaching Note
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--w)', lineHeight: 1.7, margin: 0, fontStyle: 'italic' }}>
+                "{cycleDoc.coaching_note}"
+              </p>
+            </div>
+          )}
+          <div style={{ marginTop: 12, fontSize: 11, color: 'var(--mid)', textAlign: 'center' }}>
+            Tap a node to view each stage
+          </div>
+        </div>
+      ) : (
+        <div style={{ background: 'var(--d2)', border: '1px solid var(--bdr)', borderRadius: 10, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
+          <div style={{ fontSize: 20, flexShrink: 0 }}>🔒</div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 3 }}>Panic Cycle Profile</div>
+            <div style={{ fontSize: 12, color: 'var(--mid)', lineHeight: 1.5 }}>
+              Your practitioner is reviewing your responses and building your personalized profile. You'll see it here once it's ready.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tier 1 — raw responses, collapsible */}
+      <div style={{ background: 'var(--d2)', border: '1px solid var(--bdr)', borderRadius: 10, overflow: 'hidden' }}>
         <button
           onClick={() => setExpanded(e => !e)}
           style={{
-            width: '100%', padding: '14px 18px', background: 'none', border: 'none',
+            width: '100%', padding: '12px 18px', background: 'none', border: 'none',
             cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             fontFamily: 'inherit', textAlign: 'left',
           }}
         >
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--w)' }}>Your Assessment Responses</div>
-            <div style={{ fontSize: 11, color: 'var(--mid)', marginTop: 2 }}>What you submitted — your panic loop at a glance</div>
-          </div>
+          <div style={{ fontSize: 12, color: 'var(--mid)' }}>Your full assessment responses</div>
           <span style={{ color: 'var(--mid)', fontSize: 11, flexShrink: 0, marginLeft: 12 }}>{expanded ? '▲ Hide' : '▼ Show'}</span>
         </button>
         {expanded && (
@@ -461,53 +543,6 @@ function PanicLoopSection({ rawResponses, cycleDoc }) {
           </div>
         )}
       </div>
-
-      {/* Tier 2 — released document or pending state */}
-      {cycleDoc?.released ? (
-        <div style={{ background: 'rgba(26,122,74,.06)', border: '1px solid rgba(26,122,74,.25)', borderRadius: 10, padding: '16px 18px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-            <div style={{ fontSize: 10, letterSpacing: 1.5, color: 'var(--gl)', fontWeight: 700, textTransform: 'uppercase' }}>
-              Panic Cycle Profile
-            </div>
-            <span className="pill pill-green" style={{ fontSize: 9 }}>Practitioner Reviewed</span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {DOC_FIELDS.map(({ label, key }) => (
-              cycleDoc[key] ? (
-                <div key={key}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--gl)', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 4 }}>
-                    {label}
-                  </div>
-                  <div style={{ fontSize: 13, color: 'var(--w)', lineHeight: 1.6 }}>{cycleDoc[key]}</div>
-                </div>
-              ) : null
-            ))}
-          </div>
-          {cycleDoc.coaching_note && (
-            <div style={{ marginTop: 16, borderTop: '1px solid rgba(26,122,74,.2)', paddingTop: 16 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#f0b030', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 8 }}>
-                Coaching Note
-              </div>
-              <p style={{ fontSize: 13, color: 'var(--w)', lineHeight: 1.7, margin: 0, fontStyle: 'italic' }}>
-                "{cycleDoc.coaching_note}"
-              </p>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div style={{
-          background: 'var(--d2)', border: '1px solid var(--bdr)', borderRadius: 10,
-          padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14,
-        }}>
-          <div style={{ fontSize: 20, flexShrink: 0 }}>🔒</div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 3 }}>Panic Cycle Profile</div>
-            <div style={{ fontSize: 12, color: 'var(--mid)', lineHeight: 1.5 }}>
-              Your practitioner is reviewing your responses and building your personalized profile. You'll see it here once it's ready.
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
