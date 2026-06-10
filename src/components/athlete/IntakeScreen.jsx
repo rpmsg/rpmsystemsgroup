@@ -416,7 +416,10 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
             <div className="brk on">
               <div className="bico">🧠</div>
               <h2>Part 1: Your Panic Cycle</h2>
-              <p>These questions map how pressure shows up for you — your triggers, body response, and automatic reactions. No wrong answers.</p>
+              <p>These questions map your pattern — the automatic reactions that impact your performance under pressure. We assess your triggers, thoughts, bodily responses, behaviors, and what comes next.</p>
+              <p>Your responses build your Panic Cycle, which becomes the foundation for your Performance Cycle — the system that breaks the pattern.</p>
+              <p>No wrong answers. Honest ones give us the clearest picture.</p>
+              <p>Your responses are confidential and will never be shared.</p>
               <button className="btn bp" onClick={startPC}>Let's Begin →</button>
             </div>
           )}
