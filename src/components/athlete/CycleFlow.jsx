@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useHome } from '../../HomeContext'
-import { fetchPerformanceCycles, submitPerformanceCycle, resubmitPerformanceCycle } from '../../lib/cycleApi'
+import { fetchPerformanceCycles, submitPerformanceCycle, resubmitPerformanceCycle, fetchRawResponses, fetchCycleDocument } from '../../lib/cycleApi'
 import CycleNameScreen from './CycleNameScreen'
 import CycleDocumentScreen from './CycleDocumentScreen'
 
@@ -390,14 +390,138 @@ function DoneScreen({ cycleName, onBackToList, logoUrl }) {
   )
 }
 
+// ── Panic Loop Section ────────────────────────────────────────
+const RESPONSE_FIELDS = [
+  { label: 'Trigger',       key: 'q1_trigger' },
+  { label: 'First Signals', key: 'q2_first_signal' },
+  { label: 'Emotions',      key: 'q3_emotions' },
+  { label: 'Inner Voice',   key: 'q4_inner_voice' },
+  { label: 'Identity',      key: 'q5_identity_phrase' },
+  { label: 'Body Response', key: 'q6_body_response' },
+  { label: 'Reaction',      key: 'q7_reaction' },
+  { label: 'Behavior',      key: 'q8_behavior' },
+  { label: 'Your Pattern',  key: 'q9_pattern_sentence' },
+  { label: 'Outcome',       key: 'q10_outcome' },
+  { label: 'Aftermath',     key: 'q11_aftermath' },
+]
+
+const DOC_FIELDS = [
+  { label: 'Trigger',       key: 'trigger' },
+  { label: 'Emotions',      key: 'emotions' },
+  { label: 'Body Response', key: 'body_response' },
+  { label: 'Behavior',      key: 'behavior' },
+  { label: 'Aftermath',     key: 'aftermath' },
+]
+
+function PanicLoopSection({ rawResponses, cycleDoc }) {
+  const [expanded, setExpanded] = useState(false)
+
+  if (!rawResponses) return null
+
+  function formatVal(val) {
+    if (!val) return '—'
+    if (Array.isArray(val)) return val.join(', ')
+    return val
+  }
+
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <div style={{ fontSize: 11, color: 'var(--mid)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>
+        My Panic Loop
+      </div>
+
+      {/* Tier 1 — raw responses, always visible, collapsible */}
+      <div style={{ background: 'var(--d2)', border: '1px solid var(--bdr)', borderRadius: 10, marginBottom: 10, overflow: 'hidden' }}>
+        <button
+          onClick={() => setExpanded(e => !e)}
+          style={{
+            width: '100%', padding: '14px 18px', background: 'none', border: 'none',
+            cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            fontFamily: 'inherit', textAlign: 'left',
+          }}
+        >
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--w)' }}>Your Assessment Responses</div>
+            <div style={{ fontSize: 11, color: 'var(--mid)', marginTop: 2 }}>What you submitted — your panic loop at a glance</div>
+          </div>
+          <span style={{ color: 'var(--mid)', fontSize: 11, flexShrink: 0, marginLeft: 12 }}>{expanded ? '▲ Hide' : '▼ Show'}</span>
+        </button>
+        {expanded && (
+          <div style={{ borderTop: '1px solid var(--bdr)', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {RESPONSE_FIELDS.map(({ label, key }) => (
+              <div key={key} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--mid)', textTransform: 'uppercase', letterSpacing: 1.2, minWidth: 100, paddingTop: 2, flexShrink: 0 }}>
+                  {label}
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--w)', lineHeight: 1.5 }}>
+                  {formatVal(rawResponses[key])}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Tier 2 — released document or pending state */}
+      {cycleDoc?.released ? (
+        <div style={{ background: 'rgba(26,122,74,.06)', border: '1px solid rgba(26,122,74,.25)', borderRadius: 10, padding: '16px 18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+            <div style={{ fontSize: 10, letterSpacing: 1.5, color: 'var(--gl)', fontWeight: 700, textTransform: 'uppercase' }}>
+              Panic Cycle Profile
+            </div>
+            <span className="pill pill-green" style={{ fontSize: 9 }}>Practitioner Reviewed</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {DOC_FIELDS.map(({ label, key }) => (
+              cycleDoc[key] ? (
+                <div key={key}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--gl)', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 4 }}>
+                    {label}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--w)', lineHeight: 1.6 }}>{cycleDoc[key]}</div>
+                </div>
+              ) : null
+            ))}
+          </div>
+          {cycleDoc.coaching_note && (
+            <div style={{ marginTop: 16, borderTop: '1px solid rgba(26,122,74,.2)', paddingTop: 16 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#f0b030', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 8 }}>
+                Coaching Note
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--w)', lineHeight: 1.7, margin: 0, fontStyle: 'italic' }}>
+                "{cycleDoc.coaching_note}"
+              </p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{
+          background: 'var(--d2)', border: '1px solid var(--bdr)', borderRadius: 10,
+          padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14,
+        }}>
+          <div style={{ fontSize: 20, flexShrink: 0 }}>🔒</div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 3 }}>Panic Cycle Profile</div>
+            <div style={{ fontSize: 12, color: 'var(--mid)', lineHeight: 1.5 }}>
+              Your practitioner is reviewing your responses and building your personalized profile. You'll see it here once it's ready.
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Cycle list ────────────────────────────────────────────────
-function CycleList({ cycles, loading, onNew, onView, onRevise, onBack, logoUrl }) {
+function CycleList({ cycles, loading, onNew, onView, onRevise, onBack, logoUrl, rawResponses, cycleDoc }) {
   return (
     <>
       <Nav onBack={onBack} />
       <div style={{ flex: 1, padding: '32px 24px', overflowY: 'auto' }}>
         <div style={{ maxWidth: 600, margin: '0 auto' }}>
           {logoUrl && <img src={logoUrl} alt="" style={{ height: 44, width: 'auto', opacity: 0.85, display: 'block', marginBottom: 24 }} />}
+
+          <PanicLoopSection rawResponses={rawResponses} cycleDoc={cycleDoc} />
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
             <div>
@@ -467,6 +591,8 @@ function CycleList({ cycles, loading, onNew, onView, onRevise, onBack, logoUrl }
 export default function CycleFlow({ team, athlete, panicIntake, onBack }) {
   const [screen, setScreen] = useState(S.LIST)
   const [cycles, setCycles] = useState([])
+  const [rawResponses, setRawResponses] = useState(null)
+  const [cycleDoc, setCycleDoc] = useState(null)
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState(null)
   const [viewCycle, setViewCycle] = useState(null)
@@ -488,7 +614,16 @@ export default function CycleFlow({ team, athlete, panicIntake, onBack }) {
 
   async function loadCycles() {
     setLoading(true)
-    try { setCycles(await fetchPerformanceCycles(athlete.id, team.id)) } catch {}
+    try {
+      const [cyclesData, raw, doc] = await Promise.all([
+        fetchPerformanceCycles(athlete.id, team.id),
+        fetchRawResponses(athlete.id, team.id),
+        fetchCycleDocument(athlete.id, team.id),
+      ])
+      setCycles(cyclesData)
+      setRawResponses(raw)
+      setCycleDoc(doc)
+    } catch {}
     setLoading(false)
   }
 
@@ -557,6 +692,8 @@ export default function CycleFlow({ team, athlete, panicIntake, onBack }) {
   if (screen === S.LIST) return (
     <CycleList
       cycles={cycles} loading={loading}
+      rawResponses={rawResponses}
+      cycleDoc={cycleDoc}
       logoUrl={team?.logo_url}
       onNew={startNew}
       onView={c => { setViewCycle(c); setScreen(S.VIEW) }}
