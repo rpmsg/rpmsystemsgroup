@@ -1,5 +1,5 @@
 RPM Systems Group — Master Project Document
-Last updated: August 17, 2026 | Source: Claude Code summaries + planning history
+Last updated: August 17, 2026 (RLS/rotation SQL committed to repo) | Source: Claude Code summaries + planning history
 
 
 ⚠️ Read This First — Status Reality Check
@@ -239,9 +239,9 @@ Logo finalized, 3 colorways, SVGs produced
 10. Security Audit — Status as of 2026-08-17
 ✅ FIXED (verified live, not just planned):
 
-1. Admin password rotation — DONE Old leaked password (RPMadmin26) confirmed dead (returns invalid_credentials). New password applied to the live Supabase Auth account. admins.password plaintext column set to NULL. supabase_auth_migration.sql:53 now holds a placeholder, not the real password. Note: the old password remains in git history permanently (rotation makes it useless, but doesn't erase it — history rewrite via force-push was offered but not done; revisit if that matters for the lawyer conversation).
+1. Admin password rotation — DONE Old leaked password (RPMadmin26) confirmed dead (returns invalid_credentials). New password applied to the live Supabase Auth account. admins.password plaintext column set to NULL. supabase_auth_migration.sql:53 now holds a placeholder, not the real password — this scrub is committed and pushed (commit be645c6). Note: the old password remains in git history permanently (rotation makes it useless, but doesn't erase it — history rewrite via force-push was offered but not done; revisit if that matters for the lawyer conversation).
 
-2. Coach/admin RLS team-scoping — DONE Real policies applied (saved in supabase_rls_hardening_2026_08_17.sql): is_admin() and coach_team_id() helper functions added; coaches now scoped to team_id = coach_team_id() on team/roster/panic/social-map/pulse/wellness tables; sensitive admin-only tables (admins, coaches, athlete_pins, panic_cycle_documents, custom_questions, messages, message_notifications) now have zero coach access (verified no coach-facing component ever needed it) rather than false team-scoping. Tested live against a real coach account — confirmed locked out of another team's data (empty reads, explicit 403 on a write attempt) while own-team access and admin cross-team access both still work correctly.
+2. Coach/admin RLS team-scoping — DONE Real policies applied (saved in supabase_rls_hardening_2026_08_17.sql, committed and pushed at commit be645c6): is_admin() and coach_team_id() helper functions added; coaches now scoped to team_id = coach_team_id() on team/roster/panic/social-map/pulse/wellness tables; sensitive admin-only tables (admins, coaches, athlete_pins, panic_cycle_documents, custom_questions, messages, message_notifications) now have zero coach access (verified no coach-facing component ever needed it) rather than false team-scoping. Tested live against a real coach account — confirmed locked out of another team's data (empty reads, explicit 403 on a write attempt) while own-team access and admin cross-team access both still work correctly.
 
 Bonus fixes found + closed during this pass:
 
