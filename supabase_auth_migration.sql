@@ -46,11 +46,18 @@ INSERT INTO auth.users (
   raw_app_meta_data, raw_user_meta_data,
   is_super_admin, role, aud
 )
+-- SECURITY NOTE (2026-08-17): this script originally hardcoded the real
+-- admin password here in plaintext and was committed to git. That password
+-- was rotated live via the Supabase Auth Admin API on 2026-08-17 and is no
+-- longer valid — see supabase_rls_hardening_2026_08_17.sql and the session
+-- notes for details. The placeholder below is NOT a real credential; if
+-- re-running this migration on a fresh project, replace it with a freshly
+-- generated password and rotate it again afterward.
 SELECT
   gen_random_uuid(),
   '00000000-0000-0000-0000-000000000000',
   'courtneywhite@fuller.edu',
-  crypt('RPMadmin26', gen_salt('bf', 10)),
+  crypt('REPLACE_ME_BEFORE_RUNNING', gen_salt('bf', 10)),
   now(), now(), now(),
   '{"provider":"email","providers":["email"]}'::jsonb,
   '{}'::jsonb,
@@ -117,6 +124,12 @@ ALTER TABLE public.custom_questions       ENABLE ROW LEVEL SECURITY;
 -- Principle: anon = unauthenticated athletes (read-only or
 --   submit-only depending on table).  authenticated = coaches
 --   and admins who have signed in via Supabase Auth.
+--
+-- SUPERSEDED (2026-08-17): the "authenticated" policies below were
+-- blanket USING (true) — any logged-in coach could read/write every
+-- team's data. Replaced with team-scoped coach policies + admin-only
+-- policies in supabase_rls_hardening_2026_08_17.sql. Keep this block
+-- for history only; it does not reflect the live policy set.
 -- ───────────────────────────────────────────────────────────────
 
 -- teams: athletes read active teams by code; coaches/admins do everything
