@@ -39,7 +39,7 @@ function ProgressBar({ n, smOnly, TOTAL }) {
   )
 }
 
-function PCQuestion({ q, answers, otherTexts, error, smOnly, TOTAL, setText, setOtherText, toggleSingle, toggleMulti, navPC, donePC }) {
+function PCQuestion({ q, pcTotal, answers, otherTexts, error, smOnly, TOTAL, setText, setOtherText, toggleSingle, toggleMulti, navPC, donePC }) {
   const sel = answers[q.id] || []
   const otherSelected = sel.includes('Other')
   const otherVal = otherTexts[q.id] || ''
@@ -93,7 +93,7 @@ function PCQuestion({ q, answers, otherTexts, error, smOnly, TOTAL, setText, set
       {error && <div className="err" style={{ marginBottom: 8 }}>{error}</div>}
 
       <div className="qnav">
-        {q.n === 11 ? (
+        {q.n === pcTotal ? (
           <button className="btn bp" onClick={donePC}>Continue to Social Map →</button>
         ) : (
           <button className="btn bp" onClick={() => navPC(q.n + 1)}>Next →</button>
@@ -168,10 +168,6 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
   const questionSet    = administration === 2 ? 2 : 1
   const smOnly         = administration > 1
 
-  const PC_TOTAL = smOnly ? 0 : 11
-  const SM_TOTAL = 12
-  const TOTAL    = smOnly ? 12 : 23
-
   const smDefaultQuestions = questionSet === 2 ? SM_QUESTIONS_SET2 : SM_QUESTIONS
 
   const [step, setStep]             = useState(smOnly ? 'brk-social' : 'brk-start')
@@ -183,6 +179,14 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
   const [loadingQ, setLoadingQ]     = useState(true)
   const [error, setError]           = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  // Derived from the actual fetched question sets, not hardcoded — the
+  // admin question manager can add/remove Panic Cycle or Social Map
+  // questions, and the step numbering/progress display must track
+  // whatever is actually active rather than an assumed fixed count.
+  const PC_TOTAL = smOnly ? 0 : pcQuestions.length
+  const SM_TOTAL = smQuestions.length
+  const TOTAL    = smOnly ? SM_TOTAL : PC_TOTAL + SM_TOTAL
 
   useEffect(() => {
     let cancelled = false
@@ -310,7 +314,7 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
   function startSM() { setStep(12); setError('') }
 
   function navPC(n) {
-    if (n > step && typeof step === 'number' && step <= 11) {
+    if (n > step && typeof step === 'number' && step <= PC_TOTAL) {
       if (!validatePC(step)) return
     }
     setError('')
@@ -319,7 +323,7 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
   }
 
   function donePC() {
-    if (!validatePC(11)) return
+    if (!validatePC(PC_TOTAL)) return
     setError('')
     setStep('brk-social')
   }
@@ -392,22 +396,17 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
 
   const currentN = typeof step === 'number' ? step : step === 'brk-social' ? 12 : 0
 
-  const pcSidebar = [
-    { n: 1,  label: 'Trigger Situation' }, { n: 2,  label: 'First Signal' },
-    { n: 3,  label: 'Emotions' },          { n: 4,  label: 'Inner Voice' },
-    { n: 5,  label: 'Identity Phrase' },   { n: 6,  label: 'Body Response' },
-    { n: 7,  label: 'Reaction' },          { n: 8,  label: 'Behavior' },
-    { n: 9,  label: 'Your Pattern' },      { n: 10, label: 'Outcome' },
-    { n: 11, label: 'Aftermath' },
-  ]
-  const smSidebar = [
-    { n: 12, label: 'Trust' },             { n: 13, label: 'Communication' },
-    { n: 14, label: 'Safety' },            { n: 15, label: 'Positive Influence' },
-    { n: 16, label: 'Effectiveness' },     { n: 17, label: 'Decision Trust' },
-    { n: 18, label: 'Understanding' },     { n: 19, label: 'Most Interaction' },
-    { n: 20, label: 'Positive Environment' }, { n: 21, label: 'Least Connected' },
-    { n: 22, label: 'Least Interaction' }, { n: 23, label: 'Hard to Communicate' },
-  ]
+  // Derived from the actual question sets (meta is "Panic Cycle — Dimension" /
+  // "Social Map — Dimension") so sidebar entries stay in sync with however
+  // many questions are active, instead of assuming a fixed count.
+  const pcSidebar = pcQuestions.map(q => ({
+    n: q.n,
+    label: (q.meta || '').split(' — ')[1] || `Question ${q.n}`,
+  }))
+  const smSidebar = smQuestions.map(q => ({
+    n: q.n,
+    label: (q.meta || '').split(' — ')[1] || `Question ${q.n - 11}`,
+  }))
 
   const adminLabel = ADMIN_LABELS[administration] || ADMIN_LABELS[1]
 
@@ -415,7 +414,7 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
 
   const progressProps = { smOnly, TOTAL }
   const pcProps = {
-    answers, otherTexts, error, smOnly, TOTAL,
+    pcTotal: PC_TOTAL, answers, otherTexts, error, smOnly, TOTAL,
     setText, setOtherText, toggleSingle, toggleMulti, navPC, donePC,
   }
   const smProps = {
@@ -429,7 +428,7 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
       <nav>
         <div className="logo" onClick={goHome} style={{cursor:'pointer'}}>RPM<span>.</span>SG</div>
         <div className="ntag">
-          {!smOnly && typeof step === 'number' && step <= 11 ? 'Panic Cycle Assessment' : 'Social Map Assessment'}
+          {!smOnly && typeof step === 'number' && step <= PC_TOTAL ? 'Panic Cycle Assessment' : 'Social Map Assessment'}
         </div>
         <div style={{ fontSize: 11, color: 'var(--mid)' }}>
           {typeof step === 'number' ? `${smOnly ? step - 11 : step} / ${TOTAL}` : ''}
@@ -477,10 +476,10 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
             </div>
           )}
           {!smOnly && loadingQ && step === 'brk-start' && <div className="spinner" />}
-          {!smOnly && typeof step === 'number' && step >= 1  && step <= 11 && (
+          {!smOnly && typeof step === 'number' && step >= 1  && step <= PC_TOTAL && (
             <PCQuestion q={pcQuestions[step - 1]} {...pcProps} />
           )}
-          {typeof step === 'number' && step >= 12 && step <= 23 && (
+          {typeof step === 'number' && step >= 12 && step <= 11 + SM_TOTAL && (
             <SMQuestion q={smQuestions[step - 12]} smIndex={step - 12} {...smProps} />
           )}
         </div>
