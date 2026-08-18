@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { PC_QUESTIONS, SM_QUESTIONS, SM_QUESTIONS_SET2 } from './questions'
 import { fetchRosterNames, fetchQuestionsFromSupabase, submitAssessment } from '../../lib/athleteApi'
 import { useHome } from '../../HomeContext'
@@ -106,7 +106,7 @@ function PCQuestion({ q, answers, otherTexts, error, smOnly, TOTAL, setText, set
   )
 }
 
-function SMQuestion({ q, smIndex, answers, roster, athleteName, error, smOnly, TOTAL, smQuestionsLength, submitting, toggleRoster, navSM, handleSubmit }) {
+function SMQuestion({ q, smIndex, answers, roster, athleteName, error, smOnly, TOTAL, smQuestionsLength, submitting, toggleRoster, navSM, handleSubmit, rosterTouchHandlers }) {
   const sel = answers[q.id] || []
   const others = roster.filter(nm => nm.toLowerCase() !== athleteName.toLowerCase())
   return (
@@ -114,18 +114,33 @@ function SMQuestion({ q, smIndex, answers, roster, athleteName, error, smOnly, T
       <ProgressBar n={q.n} smOnly={smOnly} TOTAL={TOTAL} />
       <div className="qmeta">{q.meta}</div>
       <div className="qt">{q.q}</div>
-      <div className="qs">{q.sub || 'Select up to 2 teammates.'}</div>
-      <div className="rg">
-        {others.map(nm => (
-          <div
-            key={nm}
-            className={`ri${sel.includes(nm) ? ' sel' : ''}`}
-            onClick={() => toggleRoster(q.id, nm)}
-          >
-            <div className="av">{initials(nm)}</div>
-            {nm}
-          </div>
+      <div className="qs">{q.sub || 'Select up to 2 teammates for this question.'}</div>
+
+      <div className="rsum">
+        <span className="rsum-label">Selected:</span>
+        {sel.length === 0 && <span className="rsum-empty">None yet</span>}
+        {sel.map((nm, i) => (
+          <span key={nm} className="rsum-chip"><b>{i + 1}</b>{nm}</span>
         ))}
+      </div>
+
+      <div className="rg" {...rosterTouchHandlers}>
+        {others.map(nm => {
+          const pick = sel.indexOf(nm)
+          return (
+            <div
+              key={nm}
+              className={`ri${pick > -1 ? ' sel' : ''}`}
+              onClick={() => toggleRoster(q.id, nm)}
+            >
+              <div className="av">
+                {initials(nm)}
+                {pick > -1 && <span className="av-badge">{pick + 1}</span>}
+              </div>
+              {nm}
+            </div>
+          )
+        })}
       </div>
       {error && <div className="err" style={{ marginBottom: 8 }}>{error}</div>}
       <div className="qnav">
@@ -246,13 +261,37 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
     setError('')
   }
 
+  // Guards against the mobile "ghost tap" bug: touch-scrolling the roster
+  // grid can end with a synthetic click firing on whatever card is under
+  // the finger when it lifts. If the touch moved more than a few px
+  // between start and end, treat it as a scroll, not a selection.
+  const rosterDragRef = useRef({ x: 0, y: 0, dragged: false })
+  const rosterTouchHandlers = {
+    onTouchStart: e => {
+      const t = e.touches[0]
+      rosterDragRef.current = { x: t.clientX, y: t.clientY, dragged: false }
+    },
+    onTouchMove: e => {
+      const t = e.touches[0]
+      const d = rosterDragRef.current
+      if (Math.abs(t.clientX - d.x) > 10 || Math.abs(t.clientY - d.y) > 10) d.dragged = true
+    },
+  }
+
   function toggleRoster(key, name) {
-    setAnswers(a => {
-      const cur = a[key] || []
-      if (cur.includes(name)) return { ...a, [key]: cur.filter(v => v !== name) }
-      if (cur.length >= 2) return a
-      return { ...a, [key]: [...cur, name] }
-    })
+    if (rosterDragRef.current.dragged) return
+    const cur = answers[key] || []
+    if (cur.includes(name)) {
+      setAnswers(a => ({ ...a, [key]: (a[key] || []).filter(v => v !== name) }))
+      setError('')
+      return
+    }
+    if (cur.length >= 2) {
+      setError('You can only select 2 teammates. Tap a selected player to remove them first.')
+      return
+    }
+    setAnswers(a => ({ ...a, [key]: [...(a[key] || []), name] }))
+    setError('')
   }
 
   function setText(key, value) {
@@ -382,6 +421,7 @@ export default function IntakeScreen({ team, athlete, onSubmitted }) {
   const smProps = {
     answers, roster, athleteName: athlete.full_name, error, smOnly, TOTAL,
     smQuestionsLength: smQuestions.length, submitting, toggleRoster, navSM, handleSubmit,
+    rosterTouchHandlers,
   }
 
   return (
