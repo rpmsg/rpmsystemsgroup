@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { fetchAllTeams, createTeam, updateTeam, deleteTeam } from '../../lib/adminApi'
+import { fetchAllTeams, createTeam, updateTeam, deleteTeam, fetchRosterAdmin } from '../../lib/adminApi'
 import { supabase } from '../../lib/supabase'
+import { generateBackupAssessmentPdf } from '../../lib/backupPdf'
 
 const EMPTY = { name: '', team_code: '', season: '', wellness_reset_day: 1 }
 const ALLOWED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp']
@@ -19,6 +20,9 @@ export default function AdminTeams() {
   const [removeLogo, setRemoveLogo]   = useState(false)
   const [wellnessSavingId, setWellnessSavingId] = useState(null)
   const [wellnessToast, setWellnessToast]       = useState('')
+  const [backupGeneratingId, setBackupGeneratingId] = useState(null)
+  const [backupError, setBackupError]               = useState('')
+  const [backupWarning, setBackupWarning]           = useState('')
 
   useEffect(() => { load() }, [])
 
@@ -114,6 +118,24 @@ export default function AdminTeams() {
     }
   }
 
+  async function handleDownloadBackup(t) {
+    setBackupError('')
+    setBackupWarning('')
+    setBackupGeneratingId(t.id)
+    try {
+      const roster = await fetchRosterAdmin(t.id)
+      if (!roster.length) {
+        setBackupWarning(`${t.name}: This team has no athletes on the roster. Add athletes before generating the backup assessment.`)
+        return
+      }
+      await generateBackupAssessmentPdf(t, roster)
+    } catch {
+      setBackupError('Could not load roster. Please check your connection and try again.')
+    } finally {
+      setBackupGeneratingId(null)
+    }
+  }
+
   async function handleDelete() {
     try {
       await deleteTeam(confirm)
@@ -134,6 +156,8 @@ export default function AdminTeams() {
       </div>
 
       {wellnessToast && <div className="alert alert-success" style={{ marginBottom: 12 }}>{wellnessToast}</div>}
+      {backupWarning && <div className="alert alert-warning" style={{ marginBottom: 12 }}>{backupWarning}</div>}
+      {backupError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{backupError}</div>}
 
       {loading ? (
         <div className="spinner" />
@@ -141,11 +165,11 @@ export default function AdminTeams() {
         <div className="alert alert-info">No teams yet. Add your first team above.</div>
       ) : (
         <div className="rt">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px 80px 150px 100px', padding: '10px 16px', background: 'var(--d3)', fontSize: 10, letterSpacing: 2, color: 'var(--mid)', textTransform: 'uppercase', borderBottom: '1px solid var(--bdr)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px 80px 150px 260px', padding: '10px 16px', background: 'var(--d3)', fontSize: 10, letterSpacing: 2, color: 'var(--mid)', textTransform: 'uppercase', borderBottom: '1px solid var(--bdr)' }}>
             <span>Name</span><span>Code</span><span>Season</span><span>Status</span><span>Wellness Check-In</span><span></span>
           </div>
           {teams.map(t => (
-            <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px 80px 150px 100px', padding: '12px 16px', borderBottom: '1px solid var(--bdr)', fontSize: 13, alignItems: 'center' }}>
+            <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px 80px 150px 260px', padding: '12px 16px', borderBottom: '1px solid var(--bdr)', fontSize: 13, alignItems: 'center' }}>
               <span style={{ fontWeight: 600 }}>{t.name}</span>
               <span style={{ fontFamily: 'monospace', color: 'var(--gl)' }}>{t.team_code}</span>
               <span style={{ color: 'var(--mid)' }}>{t.season || '—'}</span>
@@ -175,9 +199,16 @@ export default function AdminTeams() {
                   </span>
                 </label>
               </span>
-              <span style={{ display: 'flex', gap: 6 }}>
+              <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <button className="btn bo bsm" onClick={() => openEdit(t)}>Edit</button>
                 <button className="btn bdanger bsm" onClick={() => setConfirm(t.id)}>Del</button>
+                <button
+                  className="btn bo bsm"
+                  onClick={() => handleDownloadBackup(t)}
+                  disabled={backupGeneratingId === t.id}
+                >
+                  {backupGeneratingId === t.id ? 'Generating backup assessment...' : 'Download Backup PDF'}
+                </button>
               </span>
             </div>
           ))}
