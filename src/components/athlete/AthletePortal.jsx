@@ -279,27 +279,29 @@ function Dashboard({ team, athlete, intakeCompleted, unreadCount, onSelect, onSi
             </div>
 
             {/* Weekly Wellness */}
-            <div
-              onClick={() => !locked && onSelect(S.WELLNESS)}
-              style={{
-                padding: '18px 20px', borderRadius: 10, cursor: locked ? 'default' : 'pointer',
-                background: 'var(--d3)', border: '1px solid var(--bdr)', opacity: locked ? 0.45 : 1,
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Weekly Wellness</div>
-                  <div style={{ fontSize: 12, color: 'var(--mid)' }}>
-                    {locked ? 'Complete your assessment first' : 'Submit your weekly check-in'}
+            {team.wellness_enabled && (
+              <div
+                onClick={() => !locked && onSelect(S.WELLNESS)}
+                style={{
+                  padding: '18px 20px', borderRadius: 10, cursor: locked ? 'default' : 'pointer',
+                  background: 'var(--d3)', border: '1px solid var(--bdr)', opacity: locked ? 0.45 : 1,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Weekly Wellness</div>
+                    <div style={{ fontSize: 12, color: 'var(--mid)' }}>
+                      {locked ? 'Complete your assessment first' : 'Submit your weekly check-in'}
+                    </div>
                   </div>
+                  {!locked && (
+                    <button className="btn bo bsm" onClick={e => { e.stopPropagation(); onSelect(S.WELLNESS) }}>
+                      Check In →
+                    </button>
+                  )}
                 </div>
-                {!locked && (
-                  <button className="btn bo bsm" onClick={e => { e.stopPropagation(); onSelect(S.WELLNESS) }}>
-                    Check In →
-                  </button>
-                )}
               </div>
-            </div>
+            )}
 
             {/* My Messages */}
             <div

@@ -17,6 +17,8 @@ export default function AdminTeams() {
   const [logoFile, setLogoFile]       = useState(null)
   const [logoPreview, setLogoPreview] = useState('')
   const [removeLogo, setRemoveLogo]   = useState(false)
+  const [wellnessSavingId, setWellnessSavingId] = useState(null)
+  const [wellnessToast, setWellnessToast]       = useState('')
 
   useEffect(() => { load() }, [])
 
@@ -97,6 +99,21 @@ export default function AdminTeams() {
     }
   }
 
+  async function handleWellnessToggle(t) {
+    const next = !t.wellness_enabled
+    setWellnessSavingId(t.id)
+    try {
+      await updateTeam(t.id, { wellness_enabled: next })
+      await load()
+      setWellnessToast(`Wellness check-in ${next ? 'enabled' : 'disabled'} for ${t.name}.`)
+      setTimeout(() => setWellnessToast(''), 3000)
+    } catch (e) {
+      alert(e.message || 'Failed to update wellness setting.')
+    } finally {
+      setWellnessSavingId(null)
+    }
+  }
+
   async function handleDelete() {
     try {
       await deleteTeam(confirm)
@@ -116,21 +133,48 @@ export default function AdminTeams() {
         <button className="btn bp bsm" onClick={openAdd}>+ Add Team</button>
       </div>
 
+      {wellnessToast && <div className="alert alert-success" style={{ marginBottom: 12 }}>{wellnessToast}</div>}
+
       {loading ? (
         <div className="spinner" />
       ) : teams.length === 0 ? (
         <div className="alert alert-info">No teams yet. Add your first team above.</div>
       ) : (
         <div className="rt">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px 80px 100px', padding: '10px 16px', background: 'var(--d3)', fontSize: 10, letterSpacing: 2, color: 'var(--mid)', textTransform: 'uppercase', borderBottom: '1px solid var(--bdr)' }}>
-            <span>Name</span><span>Code</span><span>Season</span><span>Status</span><span></span>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px 80px 150px 100px', padding: '10px 16px', background: 'var(--d3)', fontSize: 10, letterSpacing: 2, color: 'var(--mid)', textTransform: 'uppercase', borderBottom: '1px solid var(--bdr)' }}>
+            <span>Name</span><span>Code</span><span>Season</span><span>Status</span><span>Wellness Check-In</span><span></span>
           </div>
           {teams.map(t => (
-            <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px 80px 100px', padding: '12px 16px', borderBottom: '1px solid var(--bdr)', fontSize: 13, alignItems: 'center' }}>
+            <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px 80px 150px 100px', padding: '12px 16px', borderBottom: '1px solid var(--bdr)', fontSize: 13, alignItems: 'center' }}>
               <span style={{ fontWeight: 600 }}>{t.name}</span>
               <span style={{ fontFamily: 'monospace', color: 'var(--gl)' }}>{t.team_code}</span>
               <span style={{ color: 'var(--mid)' }}>{t.season || '—'}</span>
               <span><span className={`pill pill-${t.status === 'active' ? 'green' : 'gray'}`}>{t.status}</span></span>
+              <span>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: wellnessSavingId === t.id ? 'default' : 'pointer' }}>
+                  <span style={{
+                    position: 'relative', width: 34, height: 18, borderRadius: 10, flexShrink: 0,
+                    background: t.wellness_enabled ? '#43B878' : 'var(--bdr)',
+                    opacity: wellnessSavingId === t.id ? 0.6 : 1, transition: 'background 0.15s',
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={!!t.wellness_enabled}
+                      disabled={wellnessSavingId === t.id}
+                      onChange={() => handleWellnessToggle(t)}
+                      style={{ position: 'absolute', inset: 0, opacity: 0, margin: 0, cursor: 'pointer' }}
+                      aria-label={`Wellness check-in ${t.wellness_enabled ? 'enabled' : 'disabled'} for ${t.name}`}
+                    />
+                    <span style={{
+                      position: 'absolute', top: 2, left: t.wellness_enabled ? 18 : 2,
+                      width: 14, height: 14, borderRadius: '50%', background: '#fff', transition: 'left 0.15s',
+                    }} />
+                  </span>
+                  <span style={{ fontSize: 12, color: t.wellness_enabled ? '#43B878' : 'var(--mid)' }}>
+                    {t.wellness_enabled ? 'Enabled' : 'Disabled'}
+                  </span>
+                </label>
+              </span>
               <span style={{ display: 'flex', gap: 6 }}>
                 <button className="btn bo bsm" onClick={() => openEdit(t)}>Edit</button>
                 <button className="btn bdanger bsm" onClick={() => setConfirm(t.id)}>Del</button>
