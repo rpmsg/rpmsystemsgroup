@@ -79,8 +79,6 @@ export function buildRoomingPairs(scores) {
 
 // ── Player-to-player relationship comparison ──────────────────
 
-const NEG_Q_TYPES = new Set(['sm10', 'sm11', 'sm12'])
-
 const ZONE_ADJACENTS = {
   'Core Influencer':   ['Polarizing Figure', 'Isolation Risk'],
   'Polarizing Figure': ['Core Influencer',   'Rejection Risk'],
@@ -91,7 +89,7 @@ const ZONE_ADJACENTS = {
 // Returns 'Low' | 'Moderate' | 'High'
 // Nomination data never leaves this function — only the result is returned.
 export function calculateFrictionProximity(playerA, playerB, nominations, roster, allScores) {
-  const negNoms = nominations.filter(n => NEG_Q_TYPES.has(n.question_type))
+  const negNoms = nominations.filter(n => n.question_type === 'negative')
   const rosterA = roster.find(r => r.full_name === playerA.athlete_name)
   const rosterB = roster.find(r => r.full_name === playerB.athlete_name)
   const idA = rosterA?.id
